@@ -35,7 +35,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export default function Home() {
   const { nickname } = useLoaderData<typeof loader>();
   return (
-    <BackgroundBeamsWithCollision className="flex flex-col">
+    <BackgroundBeamsWithCollision className="flex flex-col h-full">
       <div className="p-10 text-center flex justify-between w-full">
         <h1 className="text-5xl">Horse Betting Finance Edition!</h1>
         <div className="flex items-baseline gap-4">

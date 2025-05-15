@@ -46,8 +46,8 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   const { data: bets } = await supabase
     .from("bets")
     .select()
-    .eq("game", params.gameId!)
-    .eq("player", user.id);
+    .eq("game_id", params.gameId)
+    .eq("player_id", user.id);
 
   return {
     game: game as Database["public"]["Tables"]["game"]["Row"],
@@ -110,7 +110,7 @@ export default function BettingPage({
       return;
     }
 
-    if (!bet.asset) {
+    if (!bet.asset || bet.asset.length === 0) {
       toast.error("Could not place bet", {
         description: "Asset is required",
       });

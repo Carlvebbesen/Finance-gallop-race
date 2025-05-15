@@ -1,6 +1,6 @@
-import { ASSET_COLORS, ASSET_LABELS, type AssetType } from "~/lib/eventTypes";
+import { ASSET_COLORS, ASSET_LABELS } from "~/lib/event";
 import { Card, CardContent } from "../ui/card";
-import type { AssetStateValue, Bet } from "~/routes/game.client";
+import type { AssetStateValue, AssetType, Bet } from "~/types";
 
 interface AssetCardsProps {
   assets: Record<AssetType, AssetStateValue>;

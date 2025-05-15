@@ -1,5 +1,5 @@
 import { HelpCircleIcon } from "lucide-react";
-import { MarketEventType, type MarketEventCard } from "~/lib/eventTypes";
+import { MarketEventType, type MarketEventCard } from "~/types";
 interface MarketEventCardsProps {
   marketEventCards: MarketEventCard[];
   columns: number;

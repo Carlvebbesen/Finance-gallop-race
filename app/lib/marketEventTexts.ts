@@ -1,4 +1,4 @@
-import { AssetType } from "./eventTypes";
+import { AssetType } from "~/types";
 
 // --- Text Collections for Events ---
 export const bullTextsValueAll: string[] = [

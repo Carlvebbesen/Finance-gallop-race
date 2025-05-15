@@ -1,9 +1,8 @@
 import { Trophy, TrendingDown, TrendingUp, Users } from "lucide-react";
-import { ASSET_COLORS } from "~/lib/eventTypes";
+import { ASSET_COLORS } from "~/lib/event";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Card, CardContent } from "../ui/card";
-import type { SipCalculationResult } from "~/lib/utils";
-import type { Investor } from "~/routes/game.client";
+import type { Investor, SipCalculationResult } from "~/types";
 
 export default function GameResultsDialog({
   open,

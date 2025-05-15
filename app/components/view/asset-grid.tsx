@@ -1,11 +1,6 @@
-import {
-  ASSET_COLORS,
-  GameStates,
-  type AssetType,
-  type MarketEventCard,
-} from "~/lib/eventTypes";
-import type { AssetStateValue } from "~/routes/game.client";
+import { ASSET_COLORS, GameStates } from "~/lib/event";
 import { Overlay } from "../backgrounds/overlay";
+import type { AssetStateValue, AssetType, MarketEventCard } from "~/types";
 
 interface AssetGridProps {
   columns: number;

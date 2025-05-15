@@ -1,6 +1,9 @@
 import { useState } from "react";
-import type { GameSettings } from "~/components/game-settings-dialog";
-import { generateGameId, generateMarketEvents } from "~/lib/utils";
+import {
+  generateGameId,
+  generateMarketEvents,
+  readNickname,
+} from "~/lib/utils";
 import {
   Card,
   CardContent,
@@ -14,88 +17,21 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Settings } from "lucide-react";
-import { createClient } from "~/lib/supabase/server";
-import { type ActionFunctionArgs, redirect, useFetcher } from "react-router";
+import type { Route } from "./+types/create-game";
+import { createClient } from "~/lib/supabase/client";
+import { toast } from "sonner";
+import { Link, useNavigate } from "react-router";
+import type { GameSettings } from "~/types";
 
-export const action = async ({ request }: ActionFunctionArgs) => {
-  const { supabase } = createClient(request);
-  const formData = await request.formData();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return {
-      error: "User not authenticated",
-    };
-  }
-
-  const { data: player } = await supabase
-    .from("player")
-    .select()
-    .eq("id", user.id)
-    .single();
-
-  const gameId = formData.get("gameId") as string;
-  const gameSettings = JSON.parse(
-    formData.get("gameSettings") as string
-  ) as GameSettings;
-
-  // Create game
-  const { data: gameData, error } = await supabase
-    .from("game")
-    .insert({
-      game_id: gameId,
-      short_multiplier: gameSettings.shortMultiplier,
-      invest_multiplier: gameSettings.investMultiplier,
-      call_base_amount: gameSettings.callBaseAmount,
-      put_base_amount: gameSettings.putBaseAmount,
-      market_events: generateMarketEvents(
-        Math.ceil(gameSettings.rounds * 0.5),
-        100 / gameSettings.rounds
-      ).map((item) => JSON.stringify(item)),
-      rounds: gameSettings.rounds,
-      put_percent: gameSettings.putPercent,
-      call_percent: gameSettings.callPercent,
-      created_by: user.id,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    return {
-      error: error instanceof Error ? error.message : "Could not create game",
-    };
-  }
-
-  // Add creator as player
-  const { error: playerError } = await supabase.from("player_in_game").insert({
-    game_id: gameData.game_id,
-    player_id: user.id,
-    nickname: player?.nickname,
-  });
-
-  if (playerError) {
-    return {
-      error:
-        playerError instanceof Error
-          ? playerError.message
-          : "Could not add player to game",
-    };
-  }
-  console.log(gameData);
-
-  return redirect(`/game/${gameData.game_id}/place/bets`);
-};
-
-export async function loader() {
+export async function clientLoader() {
   return generateGameId();
 }
 
-export default function CreateGame({ loaderData }: { loaderData: string }) {
-  const fetcher = useFetcher<typeof action>();
+export default function CreateGame({ loaderData }: Route.ComponentProps) {
   const [gameId, setGameId] = useState(loaderData);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [loading, setloading] = useState(false);
+  const navigate = useNavigate();
   const [gameSettings, setGameSettings] = useState<GameSettings>({
     rounds: 12,
     shortMultiplier: 3,
@@ -106,15 +42,68 @@ export default function CreateGame({ loaderData }: { loaderData: string }) {
     putBaseAmount: 6,
   });
 
-  const error = fetcher.data?.error;
-  const loading = fetcher.state === "submitting";
-
   const handleRegenerateId = () => {
     setGameId(generateGameId());
   };
 
+  const create = async () => {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("User Not Authenticated");
+      return;
+    }
+    const { data: gameData, error } = await supabase
+      .from("game")
+      .insert({
+        game_id: gameId,
+        short_multiplier: gameSettings.shortMultiplier,
+        invest_multiplier: gameSettings.investMultiplier,
+        call_base_amount: gameSettings.callBaseAmount,
+        put_base_amount: gameSettings.putBaseAmount,
+        market_events: generateMarketEvents(
+          Math.ceil(gameSettings.rounds * 0.5),
+          100 / gameSettings.rounds
+        ).map((item) => JSON.stringify(item)),
+        rounds: gameSettings.rounds,
+        put_percent: gameSettings.putPercent,
+        call_percent: gameSettings.callPercent,
+        created_by: user.id,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.log(error);
+      toast.error("Could not create game");
+      return;
+    }
+
+    const { error: playerError } = await supabase
+      .from("player_in_game")
+      .insert({
+        game_id: gameData.game_id,
+        player_id: user.id,
+        nickname: readNickname(),
+      });
+
+    if (playerError) {
+      console.log(playerError);
+      toast.error("Could not add player to game");
+      return;
+    }
+    console.log(gameData);
+
+    return navigate(`/game/${gameData.game_id}/place/bets`);
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 bg-background">
+    <div className="flex min-h-screen items-center justify-center p-4 bg-background flex-col">
+      <Button className="mb-10">
+        <Link to={"/"}>GO HOME</Link>
+      </Button>
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-xl text-center">
@@ -125,58 +114,59 @@ export default function CreateGame({ loaderData }: { loaderData: string }) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <fetcher.Form method="post">
-            {error && (
-              <p className="text-sm text-destructive-500 text-center mb-4">
-                {error}
-              </p>
-            )}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="gameId">Game ID</Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRegenerateId}
-                  className="h-8 px-2 text-xs"
-                >
-                  Regenerate
-                </Button>
-              </div>
-              <Input
-                id="gameId"
-                name="gameId"
-                value={gameId}
-                readOnly
-                className="font-mono text-center text-lg tracking-wider"
-              />
-              <input
-                type="hidden"
-                name="gameSettings"
-                value={JSON.stringify(gameSettings)}
-              />
-              <p className="text-xs text-muted-foreground text-center">
-                Share this code with players to join your game
-              </p>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="gameId">Game ID</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleRegenerateId}
+                className="h-8 px-2 text-xs"
+              >
+                Regenerate
+              </Button>
             </div>
+            <Input
+              id="gameId"
+              name="gameId"
+              value={gameId}
+              readOnly
+              className="font-mono text-center text-lg tracking-wider"
+            />
+            <input
+              type="hidden"
+              name="gameSettings"
+              value={JSON.stringify(gameSettings)}
+            />
+            <p className="text-xs text-muted-foreground text-center">
+              Share this code with players to join your game
+            </p>
+          </div>
 
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full flex items-center justify-center gap-2 mt-6"
+            onClick={() => setSettingsOpen(true)}
+          >
+            <Settings className="h-4 w-4" />
+            <span>Game Settings</span>
+          </Button>
+
+          <CardFooter className="flex justify-center px-0 mt-6">
             <Button
               type="button"
-              variant="outline"
-              className="w-full flex items-center justify-center gap-2 mt-6"
-              onClick={() => setSettingsOpen(true)}
+              disabled={loading}
+              onClick={async () => {
+                setloading(true);
+                await create();
+                setloading(false);
+              }}
             >
-              <Settings className="h-4 w-4" />
-              <span>Game Settings</span>
+              {loading ? "Creating..." : "Create Market"}
             </Button>
-
-            <CardFooter className="flex justify-center px-0 mt-6">
-              <Button type="submit" disabled={loading}>
-                {loading ? "Creating..." : "Create Market"}
-              </Button>
-            </CardFooter>
-          </fetcher.Form>
+          </CardFooter>
         </CardContent>
       </Card>
 

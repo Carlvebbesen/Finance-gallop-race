@@ -1,106 +1,35 @@
-import {
-  type ActionFunctionArgs,
-  Link,
-  redirect,
-  useLoaderData,
-} from "react-router";
+import { Link, redirect } from "react-router";
 import { Button } from "~/components/ui/button";
-import { createClient } from "~/lib/supabase/server";
-import InvestCard from "~/components/bets/invest-card";
+import { createClient } from "~/lib/supabase/client";
 import type { Database } from "database.types";
-import useBetStore from "~/stores/bet-store";
-import { useEffect } from "react";
-import ShortCard from "~/components/bets/short-card";
 import CallOptionsCard from "~/components/bets/call-options-card";
-import {
-  bet_placed,
-  GameStates,
-  TradeType,
-  type BetPlacedPayload,
-} from "~/lib/eventTypes";
+import { bet_placed, GameStates } from "~/lib/event";
 import { GameIdCard } from "~/components/gameIdCopy";
-export const action = async ({ request, params }: ActionFunctionArgs) => {
-  const { supabase } = createClient(request);
+import {
+  readNickname,
+  totalSipsToDrink,
+  totalSipsToHandOut,
+} from "~/lib/utils";
+import type { Route } from "./+types/betting-page";
+import { useState } from "react";
+import { TradeType, type BetPlacedPayload, type InsertBet } from "~/types";
+import { toast } from "sonner";
+import BetCard from "~/components/bets/betCard";
+
+export async function clientLoader({ params }: Route.ClientLoaderArgs) {
+  const supabase = createClient();
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
     return redirect("/signup");
   }
-  const formData = await request.formData();
-  const asset = formData.get("asset") as string;
-  const type = formData.get("type") as TradeType;
-  const amount = Number(formData.get("amount"));
-  const gameId = params.gameId;
-
-  if ((type === TradeType.SHORT || type === TradeType.INVEST) && amount < 1) {
-    return {
-      error: "Amount must be greater than 0",
-    };
-  }
-
-  if (!asset) {
-    return {
-      error: "Asset is required",
-    };
-  }
-  let initAmount = amount;
-  if (type === TradeType.CALL) {
-    initAmount = Number(formData.get("call_base_amount")) ?? 7;
-  }
-  if (type === TradeType.PUT) {
-    initAmount = Number(formData.get("put_base_amount")) ?? 7;
-  }
-  const betObj = {
-    game: gameId!,
-    player: user.id,
-    asset: asset,
-    amount: initAmount,
-    type: type,
-    created_at: new Date().toISOString(),
-    put_option_player: null,
-  } satisfies Database["public"]["Tables"]["bets"]["Row"];
-
-  const { error } = await supabase.from("bets").insert(betObj);
-  console.log("error", error);
-  if (error) {
-    return {
-      error: error instanceof Error ? error.message : "An error occurred",
-    };
-  }
-  const { data: player } = await supabase
-    .from("player")
-    .select()
-    .eq("id", user.id)
-    .single();
-
-  await supabase.channel(`game-${gameId}`).send({
-    type: "broadcast",
-    event: bet_placed,
-    payload: {
-      gameId: gameId!,
-      playerId: user.id,
-      datetime: new Date().toISOString(),
-      asset: asset,
-      amount: initAmount,
-      type: type,
-      put_option_player: null,
-      nickname: player?.nickname,
-    } as BetPlacedPayload,
-  });
-  return {
-    success: true,
-    bet: betObj,
-  };
-};
-
-export async function loader({ request, params }: ActionFunctionArgs) {
-  const { supabase } = createClient(request);
 
   const { data: game } = await supabase
     .from("game")
     .select()
-    .eq("game_id", params.gameId!)
+    .eq("game_id", params.gameId)
     .single();
 
   if (!game) {
@@ -114,13 +43,6 @@ export async function loader({ request, params }: ActionFunctionArgs) {
     return redirect(`/game/${game.game_id}/player`);
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return redirect("/signup");
-  }
-
   const { data: bets } = await supabase
     .from("bets")
     .select()
@@ -129,19 +51,104 @@ export async function loader({ request, params }: ActionFunctionArgs) {
 
   return {
     game: game as Database["public"]["Tables"]["game"]["Row"],
-    bets: (bets ?? []) as Database["public"]["Tables"]["bets"]["Row"][],
+    placedBets: (bets ?? []) as Database["public"]["Tables"]["bets"]["Row"][],
     playerId: user.id,
   };
 }
 
-export default function BettingPage() {
-  const { game, bets } = useLoaderData<typeof loader>();
-  const updateAllBets = useBetStore((state) => state.updateAllBets);
-  const sipsToDrink = useBetStore((state) => state.getTotalSipsToDrink);
-  const sipsToHandOut = useBetStore((state) => state.getTotalSipsToHandOut);
-  useEffect(() => {
-    updateAllBets(bets);
-  }, [bets]);
+export function showTradeToast(bet: InsertBet) {
+  const messages: Record<TradeType, { title: string; description: string }> = {
+    [TradeType.INVEST]: {
+      title: "Investment placed",
+      description: `You invested ${bet.amount} sips in ${bet.asset}`,
+    },
+    [TradeType.SHORT]: {
+      title: "Short position opened",
+      description: `You shorted ${bet.asset} with ${bet.amount} sips`,
+    },
+    [TradeType.PUT]: {
+      title: "Put option bought",
+      description: `You bought a PUT on ${bet.asset} for ${bet.amount} sips`,
+    },
+    [TradeType.CALL]: {
+      title: "Call option bought",
+      description: `You bought a CALL on ${bet.asset} for ${bet.amount} sips`,
+    },
+  };
+
+  const message = messages[bet.type as TradeType];
+
+  toast.success(message.title, {
+    description: message.description,
+  });
+}
+
+export default function BettingPage({
+  loaderData,
+  params,
+}: Route.ComponentProps) {
+  const { game, placedBets, playerId } = loaderData;
+  const [bets, setBets] = useState<InsertBet[]>(placedBets);
+
+  const placeBet = async (bet: InsertBet) => {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return redirect("/signup");
+    }
+    const gameId = params.gameId;
+
+    if (
+      (bet.type === TradeType.SHORT || bet.type === TradeType.INVEST) &&
+      bet.amount < 1
+    ) {
+      toast.error("Could not place bet", {
+        description: "Amount must be greater than 0",
+      });
+      return;
+    }
+
+    if (!bet.asset) {
+      toast.error("Could not place bet", {
+        description: "Asset is required",
+      });
+      return;
+    }
+    let initAmount = bet.amount;
+    if (bet.type === TradeType.CALL) {
+      initAmount = game.call_base_amount;
+    }
+    if (bet.type === TradeType.PUT) {
+      initAmount = game.put_base_amount;
+    }
+    const { error } = await supabase.from("bets").insert(bet);
+    if (error) {
+      toast.error("Could not place bet", {
+        description: error.message,
+      });
+      return;
+    }
+    const nickname = readNickname();
+    await supabase.channel(`game-${gameId}`).send({
+      type: "broadcast",
+      event: bet_placed,
+      payload: {
+        gameId: gameId,
+        playerId: user.id,
+        datetime: new Date().toISOString(),
+        asset: bet.asset,
+        amount: initAmount,
+        type: bet.type,
+        put_option_player: bet.put_option_player,
+        nickname: nickname,
+      } as BetPlacedPayload,
+    });
+    setBets((current) => [bet, ...current]);
+    showTradeToast(bet);
+  };
+
   return (
     <div className="container mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-8">Investment Platform</h1>
@@ -167,19 +174,39 @@ export default function BettingPage() {
         </Button>
         <div className="text-lg">
           Total Sips to drink:{" "}
-          <span className="font-bold">{sipsToDrink()}</span>
+          <span className="font-bold">{totalSipsToDrink(game, bets)}</span>
         </div>
         <div className="text-lg">
           Total sips to hand out:{" "}
-          <span className="font-bold">{sipsToHandOut()}</span>
+          <span className="font-bold">{totalSipsToHandOut(game, bets)}</span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <InvestCard game={game} />
-        <ShortCard game={game} />
-        <CallOptionsCard game={game} />
-        {/* <PutOptionsCard game={game} /> */}
+        <BetCard
+          game={game}
+          type={TradeType.INVEST}
+          playerId={playerId}
+          bet={bets.find((ib) => ib.type === TradeType.INVEST)}
+          placeBet={placeBet}
+        />
+        <BetCard
+          game={game}
+          playerId={playerId}
+          bet={bets.find((ib) => ib.type === TradeType.SHORT)}
+          placeBet={placeBet}
+          type={TradeType.SHORT}
+        />
+        <CallOptionsCard
+          game={game}
+          playerId={playerId}
+          bet={bets.find((ib) => ib.type === TradeType.CALL)}
+          investBet={bets.find((ib) => ib.type === TradeType.INVEST)}
+          placeBet={placeBet}
+        />
+        {/* <PutOptionsCard game={game}
+          bets={bets.find((ib) => ib.type === TradeType.PUT)}
+          placeBet={placeBet} /> */}
       </div>
       <GameIdCard game={game} />
     </div>

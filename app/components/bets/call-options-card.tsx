@@ -1,8 +1,4 @@
-import { useEffect, type JSX } from "react";
-import { toast } from "sonner";
-import useBetStore from "~/stores/bet-store";
-import { useFetcher } from "react-router";
-import type { Database } from "database.types";
+import { useRef, useState, type JSX } from "react";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import {
@@ -12,85 +8,85 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import type { action } from "~/routes/betting-page";
-import { AssetType, TradeType, ASSET_LABELS } from "~/lib/eventTypes";
+import { AssetType, TradeType, type Game, type InsertBet } from "~/types";
+import { ASSET_LABELS } from "~/lib/event";
 
 interface Props {
-  game: Database["public"]["Tables"]["game"]["Row"];
+  game: Game;
+  bet: InsertBet | undefined;
+  investBet: InsertBet | undefined;
+  playerId: string;
+  placeBet: (bet: InsertBet) => Promise<Response | undefined>;
 }
 
-export default function CallOptionsCard({ game }: Props) {
-  const fetcher = useFetcher<typeof action>();
-  const investBet = useBetStore((state) => state.investBet);
-  const addCallBet = useBetStore((state) => state.setCallBet);
-  const callBet = useBetStore((state) => state.callBet);
+export default function CallOptionsCard({
+  game,
+  bet,
+  placeBet,
+  investBet,
+  playerId,
+}: Props) {
+  const [loading, setLoading] = useState(false);
 
-  const isSubmitting = fetcher.state === "submitting";
+  const asset = useRef("");
 
-  useEffect(() => {
-    if (fetcher.data?.error) {
-      toast.error("Could not place bet", {
-        description: fetcher.data.error,
-      });
-    }
-
-    if (fetcher.data?.success) {
-      console.log("fetcher.data.bet", fetcher.data.bet);
-      addCallBet(
-        fetcher.data.bet as Database["public"]["Tables"]["bets"]["Row"]
-      );
-      toast.success("Call options purchased", {
-        description: `You bought call options for ${fetcher.data.bet.asset}`,
-      });
-    }
-  }, [fetcher.data]);
-  console.log("callBet", callBet);
   return (
-    <Card className={`h-full ${callBet || !investBet ? "bg-gray-200" : ""}`}>
+    <Card className={`h-full ${bet || !investBet ? "bg-gray-200" : ""}`}>
       <CardHeader>
         <CardTitle>
           Buy Call Options for {game.call_base_amount} sips{" "}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <fetcher.Form method="post" className="space-y-4">
-          <input type="hidden" name="gameId" value={game.game_id} />
-          <input type="hidden" name="type" value={TradeType.CALL} />
-          <div className="space-y-2">
-            <label htmlFor="call-asset" className="text-sm font-medium">
-              Select Asset
-            </label>
-            <Select value={callBet?.asset} name="asset">
-              <SelectTrigger id="call-asset">
-                <SelectValue placeholder="Select an asset" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.values(AssetType).reduce<JSX.Element[]>(
-                  (acc, asset) => {
-                    if (investBet?.asset !== asset) {
-                      acc.push(
-                        <SelectItem key={asset} value={asset}>
-                          {ASSET_LABELS[asset]}
-                        </SelectItem>
-                      );
-                    }
-                    return acc;
-                  },
-                  []
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={!!callBet || isSubmitting}
+        <input type="hidden" name="gameId" value={game.game_id} />
+        <input type="hidden" name="type" value={TradeType.CALL} />
+        <div className="space-y-2">
+          <label htmlFor="call-asset" className="text-sm font-medium">
+            Select Asset
+          </label>
+          <Select
+            value={bet?.asset}
+            name="asset"
+            onValueChange={(value) => (asset.current = value)}
           >
-            {!!callBet
-              ? `Call option already purchased for ${callBet.asset}`
-              : "Buy call options"}
-          </Button>
-        </fetcher.Form>
+            <SelectTrigger id="call-asset">
+              <SelectValue placeholder="Select an asset" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.values(AssetType).reduce<JSX.Element[]>((acc, asset) => {
+                if (investBet?.asset !== asset) {
+                  acc.push(
+                    <SelectItem key={asset} value={asset}>
+                      {ASSET_LABELS[asset]}
+                    </SelectItem>
+                  );
+                }
+                return acc;
+              }, [])}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          type="button"
+          className="w-full"
+          disabled={!!bet || loading}
+          onClick={() => {
+            setLoading(true);
+            placeBet({
+              amount: game.call_base_amount,
+              asset: asset.current,
+              game_id: game.game_id,
+              player_id: playerId,
+              type: TradeType.CALL,
+            });
+            setLoading(false);
+            return;
+          }}
+        >
+          {!!bet
+            ? `Call option already purchased for ${bet.asset}`
+            : "Buy call options"}
+        </Button>
       </CardContent>
     </Card>
   );

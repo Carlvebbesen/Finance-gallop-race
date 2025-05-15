@@ -1,50 +1,40 @@
-import type { Database } from "database.types";
 import { useCallback, useState } from "react";
-import { redirect, type LoaderFunctionArgs } from "react-router";
+import { redirect } from "react-router";
 import { createClient } from "~/lib/supabase/client";
-import { useRealtimeGame } from "~/lib/useRealtimeGame.client";
-import type { Route } from "./+types/game.client";
+import { useRealtimeGame } from "~/lib/useRealtimeGame";
 import AssetCards from "~/components/view/asset-cards";
 import AssetGrid from "~/components/view/asset-grid";
 import MarketEvents from "~/components/view/market-events";
 import InvestorSection from "~/components/view/investor-section";
 import MarketEventCards from "~/components/view/market.event-card";
 import {
-  AssetType,
   bet_placed,
   game_state,
   GameStates,
   newMarketDay,
   player_joined,
-  TradeType,
-  type AssetChange,
-  type BaseEvent,
-  type BetPlacedPayload,
-  type Event,
-  type MarketEventCard,
-  type NewMarketDayPayload,
-} from "~/lib/eventTypes";
+} from "~/lib/event";
 import GameResultsDialog from "~/components/view/gameFinishedDialog";
 import { calculateNewTrend, calculateSips, getLeadingAsset } from "~/lib/utils";
 import { MarketEventDialog } from "~/components/view/marketEventDialog";
 import { WavyBackground } from "~/components/backgrounds/background-waves";
 import { CallOptionReminderBanner } from "~/components/view/callOptionReminderBanner";
+import {
+  TradeType,
+  AssetType,
+  type GameEvent,
+  type Investor,
+  type Bet,
+  type currentAssets,
+  type MarketEventCard,
+  type AssetChange,
+  type NewMarketDayPayload,
+  type BaseEvent,
+  type BetPlacedPayload,
+} from "~/types";
+import type { Route } from "./+types/game";
 
-export interface AssetStateValue {
-  asset: AssetType;
-  position: number;
-  lastChange: number;
-  currentTrendSum: number;
-}
-
-export type currentAssets = Record<AssetType, AssetStateValue>;
-
-export type Bet = Database["public"]["Tables"]["bets"]["Row"];
-export type Game = Database["public"]["Tables"]["game"]["Row"];
-
-export type Investor = Database["public"]["Tables"]["player_in_game"]["Row"];
-
-export async function clientLoader({ params }: LoaderFunctionArgs) {
+export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   const supabase = createClient();
 
   const { data: game, error: gameError } = await supabase
@@ -65,7 +55,7 @@ export async function clientLoader({ params }: LoaderFunctionArgs) {
   const { data: bets, error: betsError } = await supabase
     .from("bets")
     .select()
-    .eq("game", params.gameId!);
+    .eq("game_id", params.gameId);
   if (betsError) throw new Error("Failed to fetch bets");
   let gameResult;
   if (game.state === GameStates.FINISHED) {
@@ -76,7 +66,7 @@ export async function clientLoader({ params }: LoaderFunctionArgs) {
           player_id: p.player_id,
           call_option_used: p.call_option_used ?? false,
           call_option_asset: bets?.find(
-            (b) => b.player === p.player_id && b.type === TradeType.CALL
+            (b) => b.player_id === p.player_id && b.type === TradeType.CALL
           )?.asset as AssetType | undefined,
         };
       }),
@@ -178,7 +168,7 @@ export default function Game({ loaderData, params }: Route.ComponentProps) {
     return updated;
   };
   const handleNewGameEvent = useCallback(
-    async (latestEvent: Event) => {
+    async (latestEvent: GameEvent) => {
       const eventType = latestEvent.event;
       if (eventType === newMarketDay && gameState === GameStates.IN_PROGRESS) {
         const payload = latestEvent.payload as NewMarketDayPayload;
@@ -219,8 +209,8 @@ export default function Game({ loaderData, params }: Route.ComponentProps) {
             amount: payload.amount,
             asset: payload.asset,
             created_at: new Date().toISOString(),
-            game: game.game_id,
-            player: payload.playerId,
+            game_id: game.game_id,
+            player_id: payload.playerId,
             put_option_player: payload.put_option_player ?? null,
             type: payload.type,
           },

@@ -1,3 +1,16 @@
+import {
+  AssetType,
+  TradeType,
+  type SipsTakenPayload,
+  type NewMarketDayPayload,
+  type BetPlacedPayload,
+  type BaseEvent,
+  type CallOptionUsedPayload,
+  type PutOptionPlayerPayload,
+  type AssetChange,
+  type GameEvent,
+} from "~/types";
+
 const sipsTaken = "sips_taken" as const;
 const newMarketDay = "new_market_day" as const;
 const put_option_player = "put_option_player" as const;
@@ -25,36 +38,6 @@ export {
   call_option_used,
 };
 
-export enum TradeType {
-  INVEST = "invest",
-  SHORT = "short",
-  PUT = "put",
-  CALL = "call",
-}
-
-export enum AssetType {
-  GOLD = "gold",
-  CRYPTO = "crypto",
-  STOCKS = "stocks",
-  BONDS = "bonds",
-}
-export enum MarketEventType {
-  BULL = "bull",
-  BEAR = "bear",
-  BOOM = "boom",
-}
-
-// Either define the valueAll or add the changes prop
-export type MarketEventCard = {
-  id: string;
-  position: number;
-  type: MarketEventType;
-  isFlipped: boolean;
-  valueAll: number;
-  changes: AssetChange[];
-  text: string;
-};
-
 export const ASSET_LABELS: Record<AssetType, string> = {
   [AssetType.GOLD]: "Gold",
   [AssetType.BONDS]: "Bonds",
@@ -74,67 +57,7 @@ export enum GameStates {
   FINISHED = "finished",
 }
 
-export interface BaseEvent {
-  playerId: string;
-  gameId: string;
-  datetime: string;
-  nickname?: string;
-}
-
-export interface SipsTakenPayload extends BaseEvent {
-  sipsCount: number;
-}
-
-export interface AssetChange {
-  asset: AssetType;
-  change: number;
-}
-
-export interface NewMarketDayPayload extends BaseEvent {
-  changes: AssetChange[];
-}
-
-export interface BetPlacedPayload extends BaseEvent {
-  asset: string;
-  amount: number;
-  type: string;
-  put_option_player?: string | null;
-}
-export interface GameStatePayload extends BaseEvent {
-  nextState: string;
-}
-
-export interface PutOptionPlayerPayload extends BaseEvent {
-  assetType: string;
-  amount: number;
-}
-export interface CallOptionUsedPayload extends BaseEvent {
-  assetType: string;
-  callOptionUsed: boolean;
-}
-
-export type Event =
-  | { type: "broadcast"; event: typeof sipsTaken; payload: SipsTakenPayload }
-  | {
-      type: "broadcast";
-      event: typeof newMarketDay;
-      payload: NewMarketDayPayload;
-    }
-  | { type: "broadcast"; event: typeof bet_placed; payload: BetPlacedPayload }
-  | {
-      type: "broadcast";
-      event: typeof call_option_used;
-      payload: CallOptionUsedPayload;
-    }
-  | { type: "broadcast"; event: typeof game_state; payload: GameStatePayload }
-  | { type: "broadcast"; event: typeof player_joined; payload: BaseEvent }
-  | {
-      type: "broadcast";
-      event: typeof put_option_player;
-      payload: PutOptionPlayerPayload;
-    };
-
-export function generateEventText(event: Event): string {
+export function generateEventText(event: GameEvent): string {
   switch (event.event) {
     case sipsTaken: {
       const payload = event.payload as SipsTakenPayload;
@@ -145,6 +68,7 @@ export function generateEventText(event: Event): string {
     case newMarketDay: {
       const payload = event.payload as NewMarketDayPayload;
       const changesText = payload.changes
+        .filter((asset) => asset.change !== 0)
         .map(
           (item) =>
             `${item.asset}: ${item.change > 0 ? "+" : ""}${item.change}%`
@@ -193,7 +117,7 @@ function getDominantAssetColor(payload: { changes: AssetChange[] }): string {
 
   return ASSET_COLORS[highest.asset];
 }
-export function generateEventColor(event: Event): string {
+export function generateEventColor(event: GameEvent): string {
   switch (event.event) {
     case sipsTaken: {
       return "bg-gradient-to-br from-amber-200 via-yellow-400 to-orange-600";

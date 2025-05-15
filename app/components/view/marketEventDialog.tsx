@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { MarketEventCard } from "~/lib/eventTypes";
+import type { MarketEventCard } from "~/types";
 
 // --- MarketEventDialog Component ---
 export const MarketEventDialog = ({
@@ -16,12 +16,12 @@ export const MarketEventDialog = ({
   useEffect(() => {
     if (isVisible) {
       setProgress(100); // Reset progress when dialog becomes visible
-      let timeLeft = 10000; // 10 seconds
+      let timeLeft = 7000; // 7 seconds
       const updateInterval = 100; // Update every 100ms
 
       const progressTimer = setInterval(() => {
         timeLeft -= updateInterval;
-        setProgress((timeLeft / 10000) * 100);
+        setProgress((timeLeft / 7000) * 100);
         if (timeLeft <= 0) {
           clearInterval(progressTimer);
         }
@@ -29,7 +29,7 @@ export const MarketEventDialog = ({
 
       const closeTimer = setTimeout(() => {
         onClose();
-      }, 10000);
+      }, 7000);
 
       // Cleanup function
       return () => {
@@ -59,7 +59,7 @@ export const MarketEventDialog = ({
 
   return (
     <div
-      className={`fixed top-[5vh] left-1/2 -translate-x-1/2 w-[80vw] max-w-8/12 min-h-[50vh] bg-white rounded-2xl shadow-2xl z-[1000] overflow-hidden flex flex-col transition-opacity duration-500 ease-in-out ${
+      className={`fixed bottom-[4vh] left-1/2 -translate-x-1/2 w-[80vw] max-w-8/12 min-h-[50vh] bg-white rounded-2xl shadow-2xl z-[1000] overflow-hidden flex flex-col transition-opacity duration-500 ease-in-out ${
         isVisible
           ? "opacity-100 translate-y-0"
           : "opacity-0 -translate-y-5 pointer-events-none"

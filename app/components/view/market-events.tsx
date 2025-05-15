@@ -1,13 +1,10 @@
-import {
-  generateEventColor,
-  generateEventText,
-  type Event,
-} from "~/lib/eventTypes";
+import { generateEventColor, generateEventText } from "~/lib/event";
 import { ScrollArea } from "../ui/scroll-area";
 import { Button } from "../ui/button";
 import { Link } from "react-router";
+import type { GameEvent } from "~/types";
 
-export default function MarketEvents({ events }: { events: Event[] }) {
+export default function MarketEvents({ events }: { events: GameEvent[] }) {
   return (
     <div className="h-full flex flex-col p-2">
       <div className="flex justify-between">

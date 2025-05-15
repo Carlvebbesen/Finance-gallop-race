@@ -14,8 +14,8 @@ export type Database = {
           amount: number;
           asset: string;
           created_at: string;
-          game: string;
-          player: string;
+          game_id: string;
+          player_id: string;
           put_option_player: string | null;
           type: string;
         };
@@ -23,8 +23,8 @@ export type Database = {
           amount: number;
           asset: string;
           created_at?: string;
-          game: string;
-          player: string;
+          game_id: string;
+          player_id: string;
           put_option_player?: string | null;
           type: string;
         };
@@ -32,32 +32,18 @@ export type Database = {
           amount?: number;
           asset?: string;
           created_at?: string;
-          game?: string;
-          player?: string;
+          game_id?: string;
+          player_id?: string;
           put_option_player?: string | null;
           type?: string;
         };
         Relationships: [
           {
             foreignKeyName: "Bets_game_fkey";
-            columns: ["game"];
+            columns: ["game_id"];
             isOneToOne: false;
             referencedRelation: "game";
             referencedColumns: ["game_id"];
-          },
-          {
-            foreignKeyName: "Bets_player_fkey1";
-            columns: ["player"];
-            isOneToOne: false;
-            referencedRelation: "player";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "Bets_put_option_player_fkey1";
-            columns: ["put_option_player"];
-            isOneToOne: false;
-            referencedRelation: "player";
-            referencedColumns: ["id"];
           }
         ];
       };
@@ -116,32 +102,6 @@ export type Database = {
           state?: string;
           stocks_pos?: number | null;
         };
-        Relationships: [
-          {
-            foreignKeyName: "Game_created_by_fkey";
-            columns: ["created_by"];
-            isOneToOne: false;
-            referencedRelation: "player";
-            referencedColumns: ["id"];
-          }
-        ];
-      };
-      player: {
-        Row: {
-          created_at: string;
-          id: string;
-          nickname: string;
-        };
-        Insert: {
-          created_at?: string;
-          id?: string;
-          nickname: string;
-        };
-        Update: {
-          created_at?: string;
-          id?: string;
-          nickname?: string;
-        };
         Relationships: [];
       };
       player_in_game: {
@@ -176,13 +136,6 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "game";
             referencedColumns: ["game_id"];
-          },
-          {
-            foreignKeyName: "Player_in_game_player_id_fkey";
-            columns: ["player_id"];
-            isOneToOne: false;
-            referencedRelation: "player";
-            referencedColumns: ["id"];
           }
         ];
       };

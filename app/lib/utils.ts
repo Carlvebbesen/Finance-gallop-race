@@ -1,14 +1,5 @@
 import { clsx, type ClassValue } from "clsx";
-import type { Database } from "database.types";
 import { twMerge } from "tailwind-merge";
-import {
-  AssetType,
-  MarketEventType,
-  TradeType,
-  type AssetChange,
-  type MarketEventCard,
-} from "./eventTypes";
-import type { AssetStateValue, Game } from "~/routes/game.client";
 import {
   bullTextsValueAll,
   bearTextsValueAll,
@@ -16,6 +7,20 @@ import {
   boomTextsNegativeValueAll,
   assetSpecificTexts,
 } from "./marketEventTexts";
+import {
+  type PlayerState,
+  type GameRules,
+  type SipCalculationResult,
+  AssetType,
+  MarketEventType,
+  TradeType,
+  type AssetChange,
+  type AssetStateValue,
+  type Game,
+  type MarketEventCard,
+  type InsertBet,
+  type Bet,
+} from "~/types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -92,25 +97,7 @@ export function parseAssetType(value: string): AssetType | undefined {
   return undefined;
 }
 
-type Bet = Database["public"]["Tables"]["bets"]["Row"];
-
-export function calculateTotalSipsToDrink(
-  investBet: Bet | null,
-  shortBet: Bet | null,
-  callBet: Bet | null,
-  putBet: Bet | null,
-  callAmount: number,
-  putAmount: number
-): number {
-  return (
-    (investBet?.amount ?? 0) +
-    (shortBet?.amount ?? 0) +
-    (callBet?.amount ? callAmount : 0) +
-    (putBet?.amount ? putAmount : 0)
-  );
-}
-
-export const totalSipsToDrink = (game: Game, bets: Bet[]) =>
+export const totalSipsToDrink = (game: Game, bets: InsertBet[]) =>
   bets.reduce((total, bet) => {
     if (bet.type === TradeType.INVEST) {
       return total + bet.amount;
@@ -123,18 +110,19 @@ export const totalSipsToDrink = (game: Game, bets: Bet[]) =>
     }
     return total;
   }, 0);
-
-export function calculateTotalSipsToHandOut(
-  shortBet: Bet | null,
-  investBet: Bet | null,
-  shortMultiplier: number,
-  investMultiplier: number
-): number {
-  return (
-    (shortBet?.amount ? shortMultiplier * shortBet.amount : 0) +
-    (investBet?.amount ? investMultiplier * investBet.amount : 0)
-  );
-}
+export const totalSipsToHandOut = (game: Game, bets: InsertBet[]) =>
+  bets.reduce((total, bet) => {
+    if (bet.type === TradeType.INVEST) {
+      return total + game.invest_multiplier * bet.amount;
+    } else if (bet.type === TradeType.SHORT) {
+      return total + game.short_multiplier * bet.amount;
+    } else if (bet.type === TradeType.PUT) {
+      return total + game.put_base_amount;
+    } else if (bet.type === TradeType.CALL) {
+      return total + game.call_base_amount;
+    }
+    return total;
+  }, 0);
 
 export function calculateNewTrend(trend: number, change: number): number {
   if (change === 0 || (change < 0 && trend > 0) || (change > 0 && trend < 0)) {
@@ -377,62 +365,6 @@ export function generateMarketEvents(
   return events;
 }
 
-// Input type for player-specific state, especially for call options
-export interface PlayerState {
-  player_id: string; // Player ID
-  call_option_used: boolean;
-  call_option_asset?: AssetType; // The asset the player switched their investments to if call_option_used is true
-}
-
-// Input type for game rules (multipliers)
-export interface GameRules {
-  invest_multiplier: number;
-  short_multiplier: number;
-}
-
-// Output structure for successful investments
-export interface SuccessfulInvestmentInfo {
-  player: string;
-  asset: AssetType; // The effective asset invested in (could be call option asset)
-  originalInvestedAmount: number; // Sum of original bet amounts if call option, else individual bet amount
-  sipsToDeal: number;
-  callOptionUsed: boolean; // True if the player used a call option
-  isEffectiveCallOptionInvestment: boolean; // True if this specific entry is the result of a call option strategy
-}
-
-// Output structure for successful shorts
-export interface SuccessfulShortInfo {
-  player: string;
-  asset: AssetType; // The asset that was shorted
-  amount: number; // The amount shorted
-  sipsToDeal: number;
-}
-
-// Output structure for unsuccessful shorts
-export interface UnsuccessfulShortInfo {
-  player: string;
-  asset: AssetType; // The asset that was shorted (and won)
-  amount: number; // The amount shorted
-  sipsToDrink: number;
-}
-
-// Output structure for player summary
-export interface PlayerSipSummary {
-  player: string;
-  sipsToDealOut: number;
-  sipsToDrink: number;
-}
-
-// Overall result structure for the calculation function
-export interface SipCalculationResult {
-  winningAssets: AssetType[];
-  losingAssets: AssetType[]; // Assets that were present in marketPerformance but did not win
-  successfulInvestments: SuccessfulInvestmentInfo[];
-  successfulShorts: SuccessfulShortInfo[];
-  unsuccessfulShorts: UnsuccessfulShortInfo[];
-  playerSipSummary: PlayerSipSummary[];
-}
-
 /**
  * Calculates sips to take and deal out for players in a finance game.
  * @param bets Array of all bets made by players.
@@ -469,7 +401,7 @@ export function calculateSips(
     // No market data, so no winners or losers, and no sips from market events
     // Initialize player summaries for all players who made bets
     const uniquePlayerIdsInBets = Array.from(
-      new Set(bets.map((b) => b.player))
+      new Set(bets.map((b) => b.player_id))
     );
     uniquePlayerIdsInBets.forEach((playerId) => {
       if (!playerSummaries[playerId]) {
@@ -504,12 +436,12 @@ export function calculateSips(
 
   // --- 2. Process Bets for Each Player ---
   const playerMap = new Map(players.map((p) => [p.player_id, p]));
-  const uniquePlayerIds = Array.from(new Set(bets.map((b) => b.player)));
+  const uniquePlayerIds = Array.from(new Set(bets.map((b) => b.player_id)));
 
   uniquePlayerIds.forEach((playerId) => {
     playerSummaries[playerId] = { sipsToDealOut: 0, sipsToDrink: 0 };
     const playerState = playerMap.get(playerId);
-    const playerBets = bets.filter((b) => b.player === playerId);
+    const playerBets = bets.filter((b) => b.player_id === playerId);
 
     // --- Handle Investments ---
     if (playerState?.call_option_used && playerState.call_option_asset) {
@@ -612,4 +544,13 @@ export function calculateSips(
   );
 
   return result;
+}
+
+export function saveNickname(nickname: string) {
+  localStorage.setItem("nickname", nickname);
+  return nickname;
+}
+
+export function readNickname() {
+  return localStorage.getItem("nickname") ?? "No-name";
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"; // Import useCallback
 import { createClient } from "./supabase/client"; // Ensure this path is correct
-import { visibleUpdateEvents, type Event } from "./eventTypes"; // Ensure this path and type are correct
+import { visibleUpdateEvents, type Event } from "./event"; // Ensure this path and type are correct
 
 // Define a type for the callback function for clarity
 type EventCallback = (event: Event) => void;

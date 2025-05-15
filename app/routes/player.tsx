@@ -1,16 +1,11 @@
-import {
-  type ActionFunctionArgs,
-  type LoaderFunctionArgs,
-  redirect,
-  useLoaderData,
-} from "react-router";
+import { type LoaderFunctionArgs, redirect } from "react-router";
 import { useCallback, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import {
-  calculateTotalSipsToDrink,
-  calculateTotalSipsToHandOut,
   generateNextMarketRound,
+  totalSipsToDrink,
+  totalSipsToHandOut,
 } from "~/lib/utils";
 import { createClient, supabase } from "~/lib/supabase/client";
 import {
@@ -19,17 +14,19 @@ import {
   GameStates,
   newMarketDay,
   sipsTaken,
+} from "~/lib/event";
+import { GameIdCard } from "~/components/gameIdCopy";
+import { CallOptionConfirmation } from "~/components/player-call-option-dialog";
+import { useListenGameUpdates } from "~/lib/useListenGameUpdates";
+import type { Route } from "./+types/player";
+import {
   TradeType,
   type CallOptionUsedPayload,
   type GameStatePayload,
+  type Investor,
   type NewMarketDayPayload,
   type SipsTakenPayload,
-} from "~/lib/eventTypes";
-import { GameIdCard } from "~/components/gameIdCopy";
-import { CallOptionConfirmation } from "~/components/player-call-option-dialog";
-import type { Investor } from "./game.client";
-import { useListenGameUpdates } from "~/lib/useListenGameUpdates.client";
-import type { Route } from "./+types/player.client";
+} from "~/types";
 
 export async function clientLoader({ params }: LoaderFunctionArgs) {
   const supabase = createClient();
@@ -68,32 +65,14 @@ export async function clientLoader({ params }: LoaderFunctionArgs) {
   if (playerError || !player) {
     throw Error("Player not found");
   }
-  // Calculate total sips to take and give
-  const investBet = bets?.find((bet) => bet.type === TradeType.INVEST) ?? null;
-  const shortBet = bets?.find((bet) => bet.type === TradeType.SHORT) ?? null;
-  const callBet = bets?.find((bet) => bet.type === TradeType.CALL) ?? null;
-  const putBet = bets?.find((bet) => bet.type === TradeType.PUT) ?? null;
-
   return {
     player,
     game,
     bets: bets || [],
     isAdmin: game.created_by === user.id,
-    sipsToTake: calculateTotalSipsToDrink(
-      investBet,
-      shortBet,
-      callBet,
-      putBet,
-      game.call_base_amount,
-      game.put_base_amount
-    ),
-    sipsToGive: calculateTotalSipsToHandOut(
-      shortBet,
-      investBet,
-      game.short_multiplier,
-      game.invest_multiplier
-    ),
-    callBet,
+    sipsToTake: totalSipsToDrink(game, bets ?? []),
+    sipsToGive: totalSipsToHandOut(game, bets ?? []),
+    callBet: bets?.find((b) => b.type === TradeType.CALL),
   };
 }
 export default function PlayerPage({ loaderData }: Route.ComponentProps) {
@@ -248,7 +227,7 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
           </div>
         )}
 
-        {isAdmin && (
+        {isAdmin && gameState === GameStates.IN_PROGRESS && (
           <div className="mt-6">
             <Button
               onClick={handleNextRound}
@@ -281,9 +260,4 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
       </Card>
     </div>
   );
-}
-function usePlayerEvents(arg0: { gameId: string; callback: () => void }): {
-  isConnected: any;
-} {
-  throw new Error("Function not implemented.");
 }

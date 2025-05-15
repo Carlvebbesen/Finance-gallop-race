@@ -1,8 +1,6 @@
-import type { Bet, Game, Investor } from "~/routes/game.client";
+import { totalSipsToDrink } from "~/lib/utils";
+import { type Investor, type Bet, type Game, TradeType } from "~/types";
 import { Card, CardContent } from "../ui/card";
-import { TradeType } from "~/lib/eventTypes";
-import { calculateTotalSipsToDrink, totalSipsToDrink } from "~/lib/utils";
-import type { Database } from "database.types";
 
 interface InvestorSectionProps {
   investors: Investor[];
@@ -23,7 +21,7 @@ const processBetsForType = (
   investorId: string
 ): ProcessedBetInfo => {
   const relevantBets = bets.filter(
-    (bet) => bet.type === type && investorId === bet.player
+    (bet) => bet.type === type && investorId === bet.player_id
   );
   const totalAmount = relevantBets.reduce((sum, bet) => sum + bet.amount, 0);
   const assets = Array.from(new Set(relevantBets.map((bet) => bet.asset))); // Unique assets
@@ -86,7 +84,7 @@ export default function InvestorSection({
                   <h2 className="text-3xl font-semibold">
                     {totalSipsToDrink(
                       game,
-                      bets.filter((b) => b.player === investor.player_id)
+                      bets.filter((b) => b.player_id === investor.player_id)
                     )}
                   </h2>
                 </div>

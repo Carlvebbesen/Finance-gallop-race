@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { createClient } from "./supabase/client";
-import type { RealtimePostgresUpdatePayload } from "@supabase/supabase-js";
-import type { Game } from "~/routes/game.client";
+import type { Game } from "~/routes/game";
 
 export function useListenGameUpdates({
   gameId,

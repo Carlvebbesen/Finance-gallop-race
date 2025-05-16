@@ -15,7 +15,7 @@ import {
   readNickname,
   totalSipsToDrink,
 } from "~/lib/utils";
-import { createClient, supabase } from "~/lib/supabase/client";
+import { createClient } from "~/lib/supabase/client";
 import {
   call_option_used,
   game_state,
@@ -91,17 +91,17 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
   const { player, game, sipsToTake, isAdmin, bets, callBet } = loaderData;
   const [investor, setInvestor] = useState<Investor>(player);
   const [ongoingGame, setOngoingGame] = useState(game);
+  const supabase = createClient();
   const channel = supabase.channel(`game-${game.game_id}`);
   const navigate = useNavigate();
   const [isConfirmationVisible, setIsConfirmationVisible] =
     useState<boolean>(false);
 
+  console.log(investor.call_option_used);
+  console.log(callBet?.asset);
   const handleShowConfirmation = useCallback(() => {
-    if (
-      (investor.call_option_used === null ||
-        investor.call_option_used === undefined) &&
-      callBet !== null
-    ) {
+    if (investor.call_option_used === null && callBet?.asset != null) {
+      console.log("SISPLAY");
       setIsConfirmationVisible(true);
     }
   }, [setIsConfirmationVisible, callBet, investor]);
@@ -368,13 +368,29 @@ const playerStatsMarketClose = (bets: Bet[], game: Game, player: Investor) => {
   });
   return (
     <Card>
-      <CardTitle>Result after market Close</CardTitle>
+      <CardTitle className="p-2">Result after market Close</CardTitle>
       <CardContent>
-        <div className="flex flex-col">
-          <h3>Sips To hand out:</h3> <h2>{stats.sipsToHandOut}</h2>
-          <h3>Additional Sips to take:</h3> <h2>{stats.sipsToTake}</h2>
-          <h3>Winning assets:</h3> <h2>{stats.winningAssets.join(" , ")}</h2>
-          <h3>Loosing assets:</h3> <h2>{stats.loosingAssets.join(" , ")}</h2>
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-5 justify-center border-b-2">
+            <h3>Sips To hand out:</h3>{" "}
+            <h2 className="text-xl font-semibold">{stats.sipsToHandOut}</h2>
+          </div>
+          <div className="flex gap-5 justify-center border-b-2">
+            <h3>Additional Sips to take:</h3>{" "}
+            <h2 className="text-xl font-semibold">{stats.sipsToTake}</h2>
+          </div>
+          <div className="flex gap-5 justify-center border-b-2">
+            <h3>Winning assets:</h3>{" "}
+            <h2 className="text-xl font-semibold">
+              {stats.winningAssets.join(" , ")}
+            </h2>
+          </div>
+          <div className="flex gap-5 justify-center border-b-2">
+            <h3>Loosing assets:</h3>{" "}
+            <h2 className="text-xl font-semibold">
+              {stats.loosingAssets.join(" , ")}
+            </h2>
+          </div>
         </div>
       </CardContent>
     </Card>

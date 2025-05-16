@@ -31,13 +31,14 @@ export default function JoinGame() {
       toast.error("Game ID is required");
       return;
     }
-    const { data: game } = await supabase
+    const { data: game, error: gameError } = await supabase
       .from("game")
       .select()
       .eq("game_id", gameId.current)
       .single();
 
-    if (!game) {
+    if (!game || gameError) {
+      console.log(gameError);
       toast.error("Could not find game with Given Id");
       return;
     }
@@ -49,15 +50,16 @@ export default function JoinGame() {
       nickname: nickname,
     });
     if (error?.code === "23505") {
-      return navigate(`/game/${gameId}/place/bets`);
+      return navigate(`/game/${game.game_id}/place/bets`);
     }
 
     if (error) {
+      console.log(error);
       toast.error(`Error occured: ${error.message}`);
       return;
     }
 
-    await supabase.channel(`game-${gameId}`).send({
+    await supabase.channel(`game-${game.game_id}`).send({
       type: "broadcast",
       event: player_joined,
       payload: {
@@ -66,7 +68,7 @@ export default function JoinGame() {
         gameId: game.game_id,
       } as BaseEvent,
     });
-    return navigate(`/game/${gameId}/place/bets`);
+    return navigate(`/game/${game.game_id}/place/bets`);
   };
 
   const [loading, setLoading] = useState(false);

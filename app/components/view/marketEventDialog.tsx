@@ -16,12 +16,12 @@ export const MarketEventDialog = ({
   useEffect(() => {
     if (isVisible) {
       setProgress(100); // Reset progress when dialog becomes visible
-      let timeLeft = 7000; // 7 seconds
+      let timeLeft = 5000; // 5 seconds
       const updateInterval = 100; // Update every 100ms
 
       const progressTimer = setInterval(() => {
         timeLeft -= updateInterval;
-        setProgress((timeLeft / 7000) * 100);
+        setProgress((timeLeft / 5000) * 100);
         if (timeLeft <= 0) {
           clearInterval(progressTimer);
         }
@@ -29,7 +29,7 @@ export const MarketEventDialog = ({
 
       const closeTimer = setTimeout(() => {
         onClose();
-      }, 7000);
+      }, 5000);
 
       // Cleanup function
       return () => {

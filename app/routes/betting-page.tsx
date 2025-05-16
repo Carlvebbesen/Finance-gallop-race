@@ -162,7 +162,7 @@ export default function BettingPage({
 
       <div className="flex justify-between items-center mb-6 md:flex-row flex-col gap-4">
         <Button
-          type="submit"
+          type="button"
           disabled={
             bets.filter((bet) => bet.type === "short").length === 0 &&
             bets.filter((bet) => bet.type === "invest").length === 0

@@ -18,6 +18,7 @@ const bet_placed = "bet_placed" as const;
 const game_state = "game_state" as const;
 const player_joined = "player_joined" as const;
 const call_option_used = "call_option_used" as const;
+const new_game = "new_game" as const;
 
 export const visibleUpdateEvents: readonly string[] = [
   sipsTaken,
@@ -36,6 +37,7 @@ export {
   game_state,
   player_joined,
   call_option_used,
+  new_game,
 };
 
 export const ASSET_LABELS: Record<AssetType, string> = {

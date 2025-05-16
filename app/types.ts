@@ -3,6 +3,7 @@ import type {
   bet_placed,
   call_option_used,
   game_state,
+  new_game,
   newMarketDay,
   player_joined,
   put_option_player,
@@ -74,9 +75,13 @@ export interface CallOptionUsedPayload extends BaseEvent {
   assetType: string;
   callOptionUsed: boolean;
 }
+export interface newGamePayload extends BaseEvent {
+  newGameId: string;
+}
 
 export type GameEvent =
   | { type: "broadcast"; event: typeof sipsTaken; payload: SipsTakenPayload }
+  | { type: "broadcast"; event: typeof new_game; payload: newGamePayload }
   | {
       type: "broadcast";
       event: typeof newMarketDay;

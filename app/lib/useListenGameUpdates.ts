@@ -1,23 +1,34 @@
 import { useEffect, useState } from "react";
 import { createClient } from "./supabase/client";
-import type { Game } from "~/routes/game";
+import type { Game, GameEvent, newGamePayload } from "~/types";
+import { GameStates, new_game } from "./event";
+import { useNavigate } from "react-router";
 
 export function useListenGameUpdates({
   gameId,
   callback,
+  gameFinished,
 }: {
   gameId: string;
   callback: () => void;
+  gameFinished: React.Dispatch<React.SetStateAction<Game>>;
 }) {
   const supabase = createClient();
   const [channel, setChannel] = useState<ReturnType<
     typeof supabase.channel
   > | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-
+  const navigate = useNavigate();
   useEffect(() => {
     const newChannel = supabase.channel(`changes`);
-
+    const gameChannel = supabase.channel(`game-${gameId}`);
+    gameChannel.on("broadcast", { event: new_game }, (payload) => {
+      const newEvent = payload as GameEvent;
+      if (newEvent.event == new_game) {
+        const newId = newEvent.payload.newGameId;
+        navigate(`/join?newGameId=${newId}`);
+      }
+    });
     newChannel
       .on(
         "postgres_changes",
@@ -30,6 +41,7 @@ export function useListenGameUpdates({
         (payload) => {
           console.log(payload);
           const updatedGame = payload.new as Game | null;
+
           if (updatedGame) {
             const leading = Math.max(
               ...[
@@ -39,16 +51,14 @@ export function useListenGameUpdates({
                 updatedGame.stocks_pos ?? 0,
               ]
             );
-            console.log("STATUS");
-            console.log(leading);
-            console.log(
-              updatedGame.call_percent && leading > updatedGame.call_percent
-            );
             if (
               updatedGame.call_percent &&
               leading > updatedGame.call_percent
             ) {
               callback();
+            }
+            if (updatedGame.state === GameStates.FINISHED) {
+              gameFinished(updatedGame);
             }
           }
         }
@@ -62,6 +72,7 @@ export function useListenGameUpdates({
 
     return () => {
       supabase.removeChannel(newChannel);
+      supabase.removeChannel(gameChannel);
     };
   }, [gameId, supabase]);
 

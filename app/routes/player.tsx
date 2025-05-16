@@ -1,17 +1,26 @@
-import { type LoaderFunctionArgs, redirect } from "react-router";
+import {
+  Link,
+  type LoaderFunctionArgs,
+  redirect,
+  useNavigate,
+} from "react-router";
 import { useCallback, useState } from "react";
 import { Button } from "~/components/ui/button";
-import { Card } from "~/components/ui/card";
+import { Card, CardContent, CardTitle } from "~/components/ui/card";
 import {
+  calculateSipsForPlayer,
+  generateGameId,
+  generateMarketEvents,
   generateNextMarketRound,
+  readNickname,
   totalSipsToDrink,
-  totalSipsToHandOut,
 } from "~/lib/utils";
 import { createClient, supabase } from "~/lib/supabase/client";
 import {
   call_option_used,
   game_state,
   GameStates,
+  new_game,
   newMarketDay,
   sipsTaken,
 } from "~/lib/event";
@@ -21,12 +30,16 @@ import { useListenGameUpdates } from "~/lib/useListenGameUpdates";
 import type { Route } from "./+types/player";
 import {
   TradeType,
+  type Bet,
   type CallOptionUsedPayload,
+  type Game,
   type GameStatePayload,
   type Investor,
+  type newGamePayload,
   type NewMarketDayPayload,
   type SipsTakenPayload,
 } from "~/types";
+import { toast } from "sonner";
 
 export async function clientLoader({ params }: LoaderFunctionArgs) {
   const supabase = createClient();
@@ -63,7 +76,7 @@ export async function clientLoader({ params }: LoaderFunctionArgs) {
     .single();
 
   if (playerError || !player) {
-    throw Error("Player not found");
+    return redirect("/join");
   }
   return {
     player,
@@ -71,23 +84,17 @@ export async function clientLoader({ params }: LoaderFunctionArgs) {
     bets: bets || [],
     isAdmin: game.created_by === user.id,
     sipsToTake: totalSipsToDrink(game, bets ?? []),
-    sipsToGive: totalSipsToHandOut(game, bets ?? []),
     callBet: bets?.find((b) => b.type === TradeType.CALL),
   };
 }
 export default function PlayerPage({ loaderData }: Route.ComponentProps) {
-  const { player, game, sipsToTake, sipsToGive, isAdmin, bets, callBet } =
-    loaderData;
-  const [showSipsTaken, setShowSipsTaken] = useState(true);
-  const [gameState, setGameState] = useState(game.state);
+  const { player, game, sipsToTake, isAdmin, bets, callBet } = loaderData;
   const [investor, setInvestor] = useState<Investor>(player);
+  const [ongoingGame, setOngoingGame] = useState(game);
   const channel = supabase.channel(`game-${game.game_id}`);
-
+  const navigate = useNavigate();
   const [isConfirmationVisible, setIsConfirmationVisible] =
     useState<boolean>(false);
-  const [targetAsset, setTargetAsset] = useState<string>(
-    callBet?.asset ?? "NOT SELECTED"
-  );
 
   const handleShowConfirmation = useCallback(() => {
     if (
@@ -95,13 +102,14 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
         investor.call_option_used === undefined) &&
       callBet !== null
     ) {
-      setTargetAsset(callBet?.asset ?? "NOT SELECTED");
       setIsConfirmationVisible(true);
     }
-  }, [setTargetAsset, setIsConfirmationVisible, callBet, investor]);
+  }, [setIsConfirmationVisible, callBet, investor]);
+
   const { isConnected } = useListenGameUpdates({
     gameId: game.game_id,
     callback: handleShowConfirmation,
+    gameFinished: setOngoingGame,
   });
 
   const handleConfirmCallOption = async () => {
@@ -112,12 +120,16 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
         call_option_used: true,
       })
       .eq("player_id", investor.player_id);
-    console.log(error);
+    if (error) {
+      toast.error(`Error occured: ${error.message}`);
+      return;
+    }
     await channel.send({
       type: "broadcast",
       event: call_option_used,
       payload: {
         playerId: investor.player_id,
+        nickname: readNickname(),
         datetime: new Date().toISOString(),
         gameId: game.game_id,
         assetType: callBet?.asset,
@@ -130,20 +142,24 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
   };
 
   const handleDeclineCallOption = async () => {
-    console.log(`User declined call option for ${targetAsset}`);
     setIsConfirmationVisible(false);
     const { error } = await supabase
       .from("player_in_game")
       .update({
         call_option_used: false,
       })
-      .eq("player_id", investor.player_id!);
+      .eq("player_id", investor.player_id);
+    if (error) {
+      toast.error(`Error occured: ${error.message}`);
+      return;
+    }
     await channel.send({
       type: "broadcast",
       event: call_option_used,
       payload: {
         playerId: investor.player_id,
         datetime: new Date().toISOString(),
+        nickname: readNickname(),
         gameId: game.game_id,
         assetType: callBet?.asset,
         callOptionUsed: false,
@@ -155,17 +171,30 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
   };
 
   const handleSipsTaken = async () => {
+    const { error } = await supabase
+      .from("player_in_game")
+      .update({
+        sips_taken: true,
+      })
+      .eq("player_id", investor.player_id);
+    if (error) {
+      toast.error(`Error occured: ${error.message}`);
+      return;
+    }
     await channel.send({
       type: "broadcast",
       event: sipsTaken,
       payload: {
         playerId: investor.player_id,
         datetime: new Date().toISOString(),
+        nickname: readNickname(),
         gameId: game.game_id,
         sipsCount: sipsToTake,
       } as SipsTakenPayload,
     });
-    setShowSipsTaken(false);
+    setInvestor((inv) => {
+      return { ...inv, sips_taken: true };
+    });
   };
 
   const handleNextRound = async () => {
@@ -191,17 +220,81 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
         nextState: GameStates.IN_PROGRESS,
       } as GameStatePayload,
     });
-    setGameState(GameStates.IN_PROGRESS);
+    setOngoingGame((g) => {
+      return { ...g, state: GameStates.IN_PROGRESS };
+    });
+  };
+
+  const createNewGame = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return;
+    }
+    toast.info("Creating game ....");
+    const { data: gameData, error } = await supabase
+      .from("game")
+      .insert({
+        market_events: generateMarketEvents(
+          Math.ceil(game.rounds * 0.5),
+          100 / game.rounds
+        ).map((item) => JSON.stringify(item)),
+        rounds: game.rounds,
+        put_percent: game.put_percent,
+        call_percent: game.call_percent,
+        created_by: user.id,
+        call_base_amount: game.call_base_amount,
+        put_base_amount: game.put_base_amount,
+        game_id: generateGameId(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.log(error);
+      toast.error("Could not create game");
+      return;
+    }
+
+    const { error: playerError } = await supabase
+      .from("player_in_game")
+      .insert({
+        game_id: gameData.game_id,
+        player_id: user.id,
+        nickname: readNickname(),
+      });
+
+    if (playerError) {
+      console.log(playerError);
+      toast.error("Could not add player to game");
+      return;
+    }
+    console.log(gameData);
+    await channel.send({
+      type: "broadcast",
+      event: new_game,
+      payload: {
+        playerId: investor.player_id,
+        datetime: new Date().toISOString(),
+        gameId: ongoingGame.game_id,
+        newGameId: gameData.game_id,
+      } satisfies newGamePayload,
+    });
+    return navigate(`/game/${gameData.game_id}/place/bets`);
   };
 
   return (
     <div className="container max-w-md mx-auto p-4 space-y-6">
+      <Button className="mb-10">
+        <Link to={"/"}>GO HOME</Link>
+      </Button>
       <Card className="p-6">
         <h1 className="text-2xl font-bold mb-4">
           Game Stats for {investor.nickname}
         </h1>
 
-        {showSipsTaken && sipsToTake > 0 && (
+        {!investor.sips_taken && sipsToTake > 0 && (
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-red-500 mb-2">
               Sips to Take: {sipsToTake}
@@ -215,19 +308,15 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
             </Button>
           </div>
         )}
-
-        {sipsToGive > 0 && (
+        {investor.sips_taken && (
           <div className="mb-6">
-            <h2 className="text-xl font-semibold text-green-500">
-              Sips to Give: {sipsToGive}
+            <h2 className="text-xl font-semibold text-red-500 mb-2">
+              {sipsToTake} Sips taken, Lets Play 🤘
             </h2>
-            <p className="text-sm text-gray-500">
-              You can give these out if you win your bets!
-            </p>
           </div>
         )}
 
-        {isAdmin && gameState === GameStates.IN_PROGRESS && (
+        {isAdmin && ongoingGame.state === GameStates.IN_PROGRESS && (
           <div className="mt-6">
             <Button
               onClick={handleNextRound}
@@ -238,7 +327,7 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
             </Button>
           </div>
         )}
-        {isAdmin && gameState === GameStates.NOT_STARTED && (
+        {isAdmin && ongoingGame.state === GameStates.NOT_STARTED && (
           <div className="mt-6">
             <Button
               onClick={handleStartGame}
@@ -249,15 +338,45 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
             </Button>
           </div>
         )}
+        {ongoingGame.state === GameStates.FINISHED &&
+          playerStatsMarketClose(bets, ongoingGame, investor)}
+        {/* Handle case where game is finieshed TODO */}
         <GameIdCard game={game} />
         <CallOptionConfirmation
           isVisible={isConfirmationVisible}
-          assetName={targetAsset}
+          assetName={callBet?.asset}
           onConfirm={handleConfirmCallOption}
           onDecline={handleDeclineCallOption}
           playerName={investor.nickname ?? "No name"}
         />
       </Card>
+      {ongoingGame.state === GameStates.FINISHED && isAdmin && (
+        <Button onClick={() => createNewGame()} className="mb-10">
+          Create New Game ( Same Settings )
+        </Button>
+      )}
     </div>
   );
 }
+
+const playerStatsMarketClose = (bets: Bet[], game: Game, player: Investor) => {
+  const stats = calculateSipsForPlayer(bets, player, game, {
+    gold: game.gold_pos ?? 0,
+    bonds: game.bonds_pos ?? 0,
+    stocks: game.stocks_pos ?? 0,
+    crypto: game.crypto_pos ?? 0,
+  });
+  return (
+    <Card>
+      <CardTitle>Result after market Close</CardTitle>
+      <CardContent>
+        <div className="flex flex-col">
+          <h3>Sips To hand out:</h3> <h2>{stats.sipsToHandOut}</h2>
+          <h3>Additional Sips to take:</h3> <h2>{stats.sipsToTake}</h2>
+          <h3>Winning assets:</h3> <h2>{stats.winningAssets.join(" , ")}</h2>
+          <h3>Loosing assets:</h3> <h2>{stats.loosingAssets.join(" , ")}</h2>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};

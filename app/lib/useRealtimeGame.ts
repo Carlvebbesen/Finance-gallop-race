@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react"; // Import useCallback
-import { createClient } from "./supabase/client"; // Ensure this path is correct
-import { visibleUpdateEvents, type Event } from "./event"; // Ensure this path and type are correct
+import { useEffect, useState } from "react";
+import { createClient } from "./supabase/client";
+import type { GameEvent } from "~/types";
+import { visibleUpdateEvents } from "./event";
 
 // Define a type for the callback function for clarity
-type EventCallback = (event: Event) => void;
+type EventCallback = (event: GameEvent) => void;
 
 export function useRealtimeGame({
   gameId,
@@ -13,7 +14,7 @@ export function useRealtimeGame({
   onNewEvent?: EventCallback; // Make it optional if not always needed
 }) {
   const supabase = createClient();
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<GameEvent[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   useEffect(() => {
     if (!gameId) {
@@ -26,7 +27,7 @@ export function useRealtimeGame({
 
     newChannel
       .on("broadcast", { event: "*" }, (payload) => {
-        const newEvent = payload as Event;
+        const newEvent = payload as GameEvent;
         if (visibleUpdateEvents.includes(newEvent.event)) {
           setEvents((currentEvents) => [newEvent, ...currentEvents]);
         }

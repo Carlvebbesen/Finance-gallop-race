@@ -1,6 +1,6 @@
 export interface CallOptionConfirmationProps {
   isVisible: boolean;
-  assetName: string;
+  assetName?: string;
   onConfirm: () => void; // Callback for "Yes"
   onDecline: () => void; // Callback for "No"
   playerName?: string; // Optional: to personalize the message
@@ -20,7 +20,7 @@ export const CallOptionConfirmation: React.FC<CallOptionConfirmationProps> = ({
 
   const message = `${
     playerName ? playerName + ", do" : "Do"
-  } you want to use your Call Option on ${assetName}?`;
+  } you want to use your Call Option on ${assetName ?? "No Asset found"}?`;
 
   return (
     <div

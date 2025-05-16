@@ -112,6 +112,7 @@ export type Database = {
           nickname: string | null;
           player_id: string;
           put_option_used: boolean | null;
+          sips_taken: boolean;
         };
         Insert: {
           call_option_used?: boolean | null;
@@ -120,6 +121,7 @@ export type Database = {
           nickname?: string | null;
           player_id: string;
           put_option_used?: boolean | null;
+          sips_taken?: boolean;
         };
         Update: {
           call_option_used?: boolean | null;
@@ -128,6 +130,7 @@ export type Database = {
           nickname?: string | null;
           player_id?: string;
           put_option_used?: boolean | null;
+          sips_taken?: boolean;
         };
         Relationships: [
           {

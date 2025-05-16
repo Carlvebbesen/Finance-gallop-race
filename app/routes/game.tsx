@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { redirect } from "react-router";
+import { Link, redirect } from "react-router";
 import { createClient } from "~/lib/supabase/client";
 import { useRealtimeGame } from "~/lib/useRealtimeGame";
 import AssetCards from "~/components/view/asset-cards";
@@ -13,6 +13,7 @@ import {
   GameStates,
   newMarketDay,
   player_joined,
+  sipsTaken,
 } from "~/lib/event";
 import GameResultsDialog from "~/components/view/gameFinishedDialog";
 import { calculateNewTrend, calculateSips, getLeadingAsset } from "~/lib/utils";
@@ -31,8 +32,10 @@ import {
   type NewMarketDayPayload,
   type BaseEvent,
   type BetPlacedPayload,
+  type SipsTakenPayload,
 } from "~/types";
 import type { Route } from "./+types/game";
+import { Button } from "~/components/ui/button";
 
 export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   const supabase = createClient();
@@ -154,15 +157,15 @@ export default function Game({ loaderData, params }: Route.ComponentProps) {
     return tmp;
   };
 
-  const updateAssetsByN = (
-    changes: number,
+  const updateAssetsByPercent = (
+    percentChange: number,
     currentObject: currentAssets
   ): currentAssets => {
     const updated = { ...currentObject };
 
     for (const asset in currentObject) {
       const assetKey = asset as AssetType;
-      const newValue = Math.max(0, currentObject[assetKey].position + changes);
+      const newValue = currentObject[assetKey].position * 1 + percentChange;
       updated[assetKey] = { ...currentObject[assetKey], position: newValue };
     }
     return updated;
@@ -174,7 +177,7 @@ export default function Game({ loaderData, params }: Route.ComponentProps) {
         const payload = latestEvent.payload as NewMarketDayPayload;
         const updatedAssets = updateAssetObject({ ...assets }, payload.changes);
         setAssets(() => updatedAssets);
-        setTimeout(() => checkValidGameState(updatedAssets), 1000);
+        setTimeout(() => checkValidGameState(updatedAssets), 800);
       }
       if (eventType === game_state) {
         if (gameState !== GameStates.FINISHED) {
@@ -198,6 +201,7 @@ export default function Game({ loaderData, params }: Route.ComponentProps) {
             nickname: payload.nickname ?? "No Name",
             player_id: payload.playerId,
             put_option_used: false,
+            sips_taken: false,
           },
           ...investors,
         ]);
@@ -267,7 +271,10 @@ export default function Game({ loaderData, params }: Route.ComponentProps) {
           });
           showEvent(marketEvent);
           if (marketEvent.valueAll !== 0) {
-            tempAssets = updateAssetsByN(marketEvent.valueAll, tempAssets);
+            tempAssets = updateAssetsByPercent(
+              marketEvent.valueAll,
+              tempAssets
+            );
           } else {
             tempAssets = updateAssetObject(tempAssets, marketEvent.changes);
           }
@@ -323,6 +330,9 @@ export default function Game({ loaderData, params }: Route.ComponentProps) {
         {/* Main board area */}
         <div className="flex-1 flex flex-col">
           {/* Market event cards at the top */}
+          <Button className="mb-10">
+            <Link to={"/"}>GO HOME</Link>
+          </Button>
           <div className="mb-1">
             <MarketEventCards
               marketEventCards={marketEventCards}

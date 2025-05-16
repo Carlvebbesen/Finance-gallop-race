@@ -20,10 +20,16 @@ import {
   type MarketEventCard,
   type InsertBet,
   type Bet,
+  type Investor,
 } from "~/types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+// Shuffle helper
+function shuffle<T>(array: T[]): T[] {
+  return array.sort(() => Math.random() - 0.5);
 }
 
 export function generateNextMarketRound(maxGain: number): AssetChange[] {
@@ -41,38 +47,26 @@ export function generateNextMarketRound(maxGain: number): AssetChange[] {
     [AssetType.CRYPTO]: 0,
   };
 
-  // Shuffle helper
-  function shuffle<T>(array: T[]): T[] {
-    return array.sort(() => Math.random() - 0.5);
-  }
-
-  // Pick 3 unique assets
   const shuffled = shuffle([...assets]);
   const lossAsset = shuffled[0];
   const optionalGainAsset = shuffled[1];
   const guaranteedGainAsset = shuffled[2];
 
-  // Guaranteed gain: between 0.5x and 1.0x maxGain
   result[guaranteedGainAsset] = randomInRange(0.5 * maxGain, maxGain);
 
-  // 70% chance for a loss asset
   if (Math.random() < 0.4) {
     result[lossAsset] = -randomInRange(0.2 * maxGain, 0.6 * maxGain);
   }
 
-  // 40% chance for a medium gain asset
   if (Math.random() < 0.4) {
     result[optionalGainAsset] = randomInRange(0.3 * maxGain, 0.8 * maxGain);
   }
-
-  // Convert to AssetChange[]
   return Object.entries(result).map(([asset, change]) => ({
     asset: asset as AssetType,
     change: parseInt(change.toFixed(1)),
   }));
 }
 
-// Helper to generate random number in range [min, max]
 function randomInRange(min: number, max: number): number {
   return +(Math.random() * (max - min) + min).toFixed(2);
 }
@@ -272,10 +266,10 @@ export function generateMarketEvents(
         let absChange = getRandomInt(1, saneMaxValue === 0 ? 1 : saneMaxValue); // Min change of 1 if maxValue is 0
 
         if (type === MarketEventType.BULL) {
-          valueAll = absChange;
+          valueAll = absChange / 100;
           text = getRandomElement(bullTextsValueAll);
         } else if (type === MarketEventType.BEAR) {
-          valueAll = -absChange;
+          valueAll = -absChange / 100;
           text = getRandomElement(bearTextsValueAll);
         } else {
           // BOOM event affecting all assets
@@ -286,10 +280,10 @@ export function generateMarketEvents(
           );
           if (Math.random() < 0.4) {
             // 40% chance of positive BOOM
-            valueAll = absChange;
+            valueAll = absChange / 100;
             text = getRandomElement(boomTextsPositiveValueAll);
           } else {
-            valueAll = -absChange;
+            valueAll = -absChange / 100;
             text = getRandomElement(boomTextsNegativeValueAll);
           }
         }
@@ -335,7 +329,7 @@ export function generateMarketEvents(
             }
           }
           changes.push({ asset, change: changeAmount });
-          combinedTextParts.push(`${asset.toUpperCase()}: ${assetText}`);
+          combinedTextParts.push(assetText);
         }
         text = combinedTextParts.join("MEANWHILE... ");
         if (changes.length === 0) {
@@ -364,6 +358,72 @@ export function generateMarketEvents(
 
   return events;
 }
+
+export const calculateSipsForPlayer = (
+  playerBets: Bet[],
+  player: Investor,
+  gameRules: GameRules,
+  marketPerformance: Record<AssetType, number>
+) => {
+  const winningAssets = [];
+  const loosingAssets = [];
+  let max = -Infinity;
+  let min = Infinity;
+  for (const asset of Object.keys(marketPerformance)) {
+    if (marketPerformance[asset as AssetType] > max) {
+      max = marketPerformance[asset as AssetType];
+    }
+    if (marketPerformance[asset as AssetType] < min) {
+      min = marketPerformance[asset as AssetType];
+    }
+  }
+  for (const asset of Object.keys(marketPerformance)) {
+    if (marketPerformance[asset as AssetType] === max) {
+      winningAssets.push(asset);
+    }
+    if (marketPerformance[asset as AssetType] === min) {
+      loosingAssets.push(asset);
+    }
+  }
+  let call = null;
+  let short = null;
+  let invest = null;
+
+  for (const bet of playerBets) {
+    if (bet.type === TradeType.INVEST) {
+      invest = bet;
+    } else if (bet.type === TradeType.CALL) {
+      call = bet;
+    } else if (bet.type === TradeType.SHORT) {
+      short = bet;
+    }
+  }
+  let sipsToTake = 0;
+  let sipsToHandOut = 0;
+  if (
+    player.call_option_used &&
+    call != null &&
+    invest != null &&
+    winningAssets.includes(call.asset)
+  ) {
+    sipsToHandOut += gameRules.invest_multiplier * invest.amount;
+  } else if (invest != null && winningAssets.includes(invest.asset)) {
+    sipsToHandOut += gameRules.invest_multiplier * invest.amount;
+  }
+
+  if (short != null && loosingAssets.includes(short.asset)) {
+    sipsToHandOut += gameRules.short_multiplier * short.amount;
+  }
+  if (short != null && winningAssets.includes(short.asset)) {
+    sipsToTake = short.amount;
+  }
+  return {
+    winningAssets: winningAssets,
+    loosingAssets: loosingAssets,
+    sipsToHandOut: sipsToHandOut,
+    sipsToTake: sipsToTake,
+  };
+};
 
 /**
  * Calculates sips to take and deal out for players in a finance game.
@@ -430,6 +490,7 @@ export function calculateSips(
       result.losingAssets.push(asset);
     }
   }
+
   // If all assets performed equally (e.g., all 0, or only one asset), all are winners.
   // The above logic handles this: if all have same maxPerformance, all are pushed to winningAssets.
   // losingAssets will be empty in such a case if all assets are winners.

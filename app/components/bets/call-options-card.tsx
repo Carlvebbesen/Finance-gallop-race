@@ -72,7 +72,6 @@ export default function CallOptionsCard({
           disabled={!!bet || loading || !investBet}
           onClick={() => {
             setLoading(true);
-            console.log(asset.current);
             placeBet({
               amount: game.call_base_amount,
               asset: asset.current,

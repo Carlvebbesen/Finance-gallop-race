@@ -94,7 +94,6 @@ export default function CreateGame({ loaderData }: Route.ComponentProps) {
       toast.error("Could not add player to game");
       return;
     }
-    console.log(gameData);
 
     return navigate(`/game/${gameData.game_id}/place/bets`);
   };

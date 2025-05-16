@@ -96,12 +96,8 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
   const navigate = useNavigate();
   const [isConfirmationVisible, setIsConfirmationVisible] =
     useState<boolean>(false);
-
-  console.log(investor.call_option_used);
-  console.log(callBet?.asset);
   const handleShowConfirmation = useCallback(() => {
     if (investor.call_option_used === null && callBet?.asset != null) {
-      console.log("SISPLAY");
       setIsConfirmationVisible(true);
     }
   }, [setIsConfirmationVisible, callBet, investor]);
@@ -270,7 +266,6 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
       toast.error("Could not add player to game");
       return;
     }
-    console.log(gameData);
     await channel.send({
       type: "broadcast",
       event: new_game,

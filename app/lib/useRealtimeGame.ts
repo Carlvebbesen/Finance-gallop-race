@@ -51,10 +51,8 @@ export function useRealtimeGame({
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
           setIsConnected(true);
-          console.log(`Successfully subscribed to channel: game-${gameId}`);
         } else {
           setIsConnected(false);
-          console.log(`Subscription status for game-${gameId}: ${status}`);
           if (status === "CHANNEL_ERROR") {
             console.error(`Channel error for game-${gameId}.`);
           }
@@ -62,7 +60,6 @@ export function useRealtimeGame({
       });
 
     return () => {
-      console.log(`Cleaning up channel: game-${gameId}`);
       supabase.removeChannel(newChannel).catch((error) => {
         console.error(`Error removing channel game-${gameId}:`, error);
       });

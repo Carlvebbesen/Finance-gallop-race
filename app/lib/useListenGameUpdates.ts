@@ -39,7 +39,6 @@ export function useListenGameUpdates({
           filter: `game_id=eq.${gameId}`,
         },
         (payload) => {
-          console.log(payload);
           const updatedGame = payload.new as Game | null;
 
           if (updatedGame) {

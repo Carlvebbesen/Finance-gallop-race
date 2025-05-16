@@ -37,7 +37,6 @@ export function useRealtimeGame({
         if (newEvent.event == new_game) {
           const newId = newEvent.payload.newGameId;
           navigate(`/game/${newId}/spectate`);
-          window.location.reload();
         }
 
         if (onNewEvent) {

@@ -366,7 +366,7 @@ export const calculateSipsForPlayer = (
   marketPerformance: Record<AssetType, number>
 ) => {
   const winningAssets = [];
-  const loosingAssets = [];
+  const losingAssets = [];
   let max = -Infinity;
   let min = Infinity;
   for (const asset of Object.keys(marketPerformance)) {
@@ -382,7 +382,7 @@ export const calculateSipsForPlayer = (
       winningAssets.push(asset);
     }
     if (marketPerformance[asset as AssetType] === min) {
-      loosingAssets.push(asset);
+      losingAssets.push(asset);
     }
   }
   let call = null;
@@ -411,7 +411,7 @@ export const calculateSipsForPlayer = (
     sipsToHandOut += gameRules.invest_multiplier * invest.amount;
   }
 
-  if (short != null && loosingAssets.includes(short.asset)) {
+  if (short != null && losingAssets.includes(short.asset)) {
     sipsToHandOut += gameRules.short_multiplier * short.amount;
   }
   if (short != null && winningAssets.includes(short.asset)) {
@@ -419,7 +419,7 @@ export const calculateSipsForPlayer = (
   }
   return {
     winningAssets: winningAssets,
-    loosingAssets: loosingAssets,
+    losingAssets: losingAssets,
     sipsToHandOut: sipsToHandOut,
     sipsToTake: sipsToTake,
   };
@@ -455,6 +455,7 @@ export function calculateSips(
 
   // --- 1. Determine Winning and Losing Assets ---
   let maxPerformance = -Infinity;
+  let minPerformance = Infinity;
   const allMarketAssets = Object.keys(marketPerformance) as AssetType[];
 
   if (allMarketAssets.length === 0) {
@@ -476,22 +477,24 @@ export function calculateSips(
     );
     return result;
   }
-
   for (const asset of allMarketAssets) {
     if (marketPerformance[asset] > maxPerformance) {
       maxPerformance = marketPerformance[asset];
     }
+    if (marketPerformance[asset] < minPerformance) {
+      minPerformance = marketPerformance[asset];
+    }
   }
-
   for (const asset of allMarketAssets) {
     if (marketPerformance[asset] === maxPerformance) {
       result.winningAssets.push(asset);
-    } else {
+    }
+    if (marketPerformance[asset] === minPerformance) {
       result.losingAssets.push(asset);
     }
   }
 
-  // If all assets performed equally (e.g., all 0, or only one asset), all are winners.
+  // If all result.assets performed equally (e.g., all 0, or only one asset), all are winners.
   // The above logic handles this: if all have same maxPerformance, all are pushed to winningAssets.
   // losingAssets will be empty in such a case if all assets are winners.
 

@@ -7,6 +7,7 @@ import {
   generateGameId,
   generateMarketEvents,
   generateNextMarketRound,
+  getLeadingAsset,
   readNickname,
   totalSipsToDrink,
 } from "~/lib/utils";
@@ -106,30 +107,46 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
 
   const handleConfirmCallOption = async () => {
     setIsConfirmationVisible(false);
+    const diff =
+      Math.max(
+        ...[
+          game.gold_pos ?? 0,
+          game.bonds_pos ?? 0,
+          game.stocks_pos ?? 0,
+          game.crypto_pos ?? 0,
+        ]
+      ) - (game.call_percent ?? 65);
+    const isValid = diff < 20;
+    if (!isValid) {
+      toast.error("Not valid to Use the call option Now");
+    }
     const { error } = await supabase
       .from("player_in_game")
       .update({
-        call_option_used: true,
+        call_option_used: isValid,
       })
+      .eq("game_id", game.game_id)
       .eq("player_id", investor.player_id);
     if (error) {
       toast.error(`Error occured: ${error.message}`);
       return;
     }
-    await channel.send({
-      type: "broadcast",
-      event: call_option_used,
-      payload: {
-        playerId: investor.player_id,
-        nickname: readNickname(),
-        datetime: new Date().toISOString(),
-        gameId: game.game_id,
-        assetType: callBet?.asset,
-        callOptionUsed: true,
-      } as CallOptionUsedPayload,
-    });
+    if (isValid) {
+      await channel.send({
+        type: "broadcast",
+        event: call_option_used,
+        payload: {
+          playerId: investor.player_id,
+          nickname: readNickname(),
+          datetime: new Date().toISOString(),
+          gameId: game.game_id,
+          assetType: callBet?.asset,
+          callOptionUsed: true,
+        } as CallOptionUsedPayload,
+      });
+    }
     setInvestor((inv) => {
-      return { ...inv, call_option_used: true };
+      return { ...inv, call_option_used: isValid };
     });
   };
 
@@ -140,6 +157,7 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
       .update({
         call_option_used: false,
       })
+      .eq("game_id", game.game_id)
       .eq("player_id", investor.player_id);
     if (error) {
       toast.error(`Error occured: ${error.message}`);
@@ -379,7 +397,7 @@ const playerStatsMarketClose = (bets: Bet[], game: Game, player: Investor) => {
           <div className="flex gap-5 justify-center border-b-2">
             <h3>Loosing assets:</h3>{" "}
             <h2 className="text-xl font-semibold">
-              {stats.loosingAssets.join(" , ")}
+              {stats.losingAssets.join(" , ")}
             </h2>
           </div>
         </div>

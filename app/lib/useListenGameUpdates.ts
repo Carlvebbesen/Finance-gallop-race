@@ -24,9 +24,11 @@ export function useListenGameUpdates({
     const gameChannel = supabase.channel(`game-${gameId}`);
     gameChannel.on("broadcast", { event: new_game }, (payload) => {
       const newEvent = payload as GameEvent;
-      if (newEvent.event == new_game) {
+      if (newEvent.event === new_game) {
         const newId = newEvent.payload.newGameId;
-        navigate(`/join?newGameId=${newId}`);
+        if (newId) {
+          navigate(`/join/game?newGameId=${newId}`);
+        }
       }
     });
     newChannel

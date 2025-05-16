@@ -1,9 +1,4 @@
-import {
-  Link,
-  type LoaderFunctionArgs,
-  redirect,
-  useNavigate,
-} from "react-router";
+import { Link, redirect, useNavigate } from "react-router";
 import { useCallback, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardTitle } from "~/components/ui/card";
@@ -41,7 +36,7 @@ import {
 } from "~/types";
 import { toast } from "sonner";
 
-export async function clientLoader({ params }: LoaderFunctionArgs) {
+export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   const supabase = createClient();
 
   const {
@@ -56,7 +51,7 @@ export async function clientLoader({ params }: LoaderFunctionArgs) {
   const { data: game } = await supabase
     .from("game")
     .select("*")
-    .eq("game_id", params.gameId!)
+    .eq("game_id", params.gameId)
     .single();
   if (!game) {
     throw new Error("No game found");
@@ -66,16 +61,17 @@ export async function clientLoader({ params }: LoaderFunctionArgs) {
   const { data: bets } = await supabase
     .from("bets")
     .select("*")
-    .eq("game", params.gameId!)
-    .eq("player", user.id);
+    .eq("game_id", params.gameId)
+    .eq("player_id", user.id);
 
   const { data: player, error: playerError } = await supabase
     .from("player_in_game")
     .select()
-    .eq("game_id", params.gameId!)
+    .eq("game_id", params.gameId)
+    .eq("player_id", user.id)
     .single();
-  console.log(playerError);
   if (playerError) {
+    console.log(playerError);
     return redirect("/join/game");
   }
   return {

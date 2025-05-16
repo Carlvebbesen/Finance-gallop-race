@@ -330,9 +330,7 @@ export default function Game({ loaderData, params }: Route.ComponentProps) {
         {/* Main board area */}
         <div className="flex-1 flex flex-col">
           {/* Market event cards at the top */}
-          <Button className="mb-10">
-            <Link to={"/"}>GO HOME</Link>
-          </Button>
+          <h1 className="text-2xl">GAME ID: {game.game_id}</h1>
           <div className="mb-1">
             <MarketEventCards
               marketEventCards={marketEventCards}

@@ -74,9 +74,9 @@ export async function clientLoader({ params }: LoaderFunctionArgs) {
     .select()
     .eq("game_id", params.gameId!)
     .single();
-
-  if (playerError || !player) {
-    return redirect("/join");
+  console.log(playerError);
+  if (playerError) {
+    return redirect("/join/game");
   }
   return {
     player,

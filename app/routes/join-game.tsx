@@ -66,6 +66,7 @@ export default function JoinGame() {
         playerId: user.id,
         datetime: new Date().toISOString(),
         gameId: game.game_id,
+        nickname: readNickname(),
       } as BaseEvent,
     });
     return navigate(`/game/${game.game_id}/place/bets`);

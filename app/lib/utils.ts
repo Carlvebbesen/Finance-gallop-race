@@ -209,7 +209,7 @@ export function generateMarketEvents(
 
   let lastPosition = 0; // Stores the position of the previously placed event
   let trumpEventAdded = false;
-  const trumpEventChance = 0.05; // 5%
+  const trumpEventChance = 0.08; //8%
 
   for (let i = 0; i < n; i++) {
     localEventIdCounter++;

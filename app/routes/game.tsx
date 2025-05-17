@@ -165,8 +165,17 @@ export default function Game({ loaderData, params }: Route.ComponentProps) {
 
     for (const asset in currentObject) {
       const assetKey = asset as AssetType;
-      const newValue = currentObject[assetKey].position * 1 + percentChange;
-      updated[assetKey] = { ...currentObject[assetKey], position: newValue };
+      const newValue = currentObject[assetKey].position * (1 + percentChange);
+      const lastChange = percentChange * currentObject[assetKey].position;
+      updated[assetKey] = {
+        ...currentObject[assetKey],
+        position: newValue,
+        lastChange: lastChange,
+        currentTrendSum: calculateNewTrend(
+          currentObject[assetKey].currentTrendSum,
+          lastChange
+        ),
+      };
     }
     return updated;
   };
@@ -263,6 +272,8 @@ export default function Game({ loaderData, params }: Route.ComponentProps) {
       const current = [...marketEventCards];
       const updated: MarketEventCard[] = [];
       let tempAssets = { ...currentAssetState };
+      console.log("Before Event:");
+      console.log(tempAssets.gold);
       for (const marketEvent of current) {
         if (!marketEvent.isFlipped && max.position >= marketEvent.position) {
           updated.push({
@@ -270,6 +281,9 @@ export default function Game({ loaderData, params }: Route.ComponentProps) {
             isFlipped: true,
           });
           showEvent(marketEvent);
+          console.log("changes");
+          console.log(marketEvent.valueAll);
+          console.log(marketEvent.changes);
           if (marketEvent.valueAll !== 0) {
             tempAssets = updateAssetsByPercent(
               marketEvent.valueAll,
@@ -282,7 +296,8 @@ export default function Game({ loaderData, params }: Route.ComponentProps) {
           updated.push(marketEvent);
         }
       }
-
+      console.log("AFTER EVENT:");
+      console.log(tempAssets.gold);
       setAssets(() => tempAssets);
       setMarketEventCards(() => updated);
       const { error } = await supabase

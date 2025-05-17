@@ -7,7 +7,6 @@ import {
   generateGameId,
   generateMarketEvents,
   generateNextMarketRound,
-  getLeadingAsset,
   readNickname,
   totalSipsToDrink,
 } from "~/lib/utils";
@@ -88,16 +87,23 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
   const { player, game, sipsToTake, isAdmin, bets, callBet } = loaderData;
   const [investor, setInvestor] = useState<Investor>(player);
   const [ongoingGame, setOngoingGame] = useState(game);
+  const [shouldShow, setShouldShow] = useState(
+    player.call_option_used === null
+  );
   const supabase = createClient();
   const channel = supabase.channel(`game-${game.game_id}`);
   const navigate = useNavigate();
   const [isConfirmationVisible, setIsConfirmationVisible] =
     useState<boolean>(false);
   const handleShowConfirmation = useCallback(() => {
-    if (investor.call_option_used === null && callBet?.asset != null) {
+    if (
+      investor.call_option_used === null &&
+      callBet?.asset != null &&
+      shouldShow
+    ) {
       setIsConfirmationVisible(true);
     }
-  }, [setIsConfirmationVisible, callBet, investor]);
+  }, [setIsConfirmationVisible, callBet, investor, shouldShow]);
 
   const { isConnected } = useListenGameUpdates({
     gameId: game.game_id,
@@ -107,6 +113,7 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
 
   const handleConfirmCallOption = async () => {
     setIsConfirmationVisible(false);
+    setShouldShow(false);
     const diff =
       Math.max(
         ...[
@@ -120,16 +127,18 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
     if (!isValid) {
       toast.error("Not valid to Use the call option Now");
     }
-    const { error } = await supabase
-      .from("player_in_game")
-      .update({
-        call_option_used: isValid,
-      })
-      .eq("game_id", game.game_id)
-      .eq("player_id", investor.player_id);
-    if (error) {
-      toast.error(`Error occured: ${error.message}`);
-      return;
+    if (isValid) {
+      const { error } = await supabase
+        .from("player_in_game")
+        .update({
+          call_option_used: true,
+        })
+        .eq("game_id", game.game_id)
+        .eq("player_id", investor.player_id);
+      if (error) {
+        toast.error(`Error occured: ${error.message}`);
+        return;
+      }
     }
     if (isValid) {
       await channel.send({
@@ -152,6 +161,7 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
 
   const handleDeclineCallOption = async () => {
     setIsConfirmationVisible(false);
+    setShouldShow(false);
     const { error } = await supabase
       .from("player_in_game")
       .update({

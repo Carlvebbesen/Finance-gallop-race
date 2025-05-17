@@ -1,8 +1,9 @@
-import { Trophy, TrendingDown, TrendingUp, Users } from "lucide-react";
+import { Trophy, TrendingDown, TrendingUp, Users, Link } from "lucide-react";
 import { ASSET_COLORS } from "~/lib/event";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Card, CardContent } from "../ui/card";
 import type { Investor, SipCalculationResult } from "~/types";
+import { Button } from "../ui/button";
 
 export default function GameResultsDialog({
   open,
@@ -32,6 +33,9 @@ export default function GameResultsDialog({
           <DialogTitle className="text-center text-5xl font-bold">
             Market Race Results
           </DialogTitle>
+          <Button>
+            <Link to={"/"}>Exit Market</Link>
+          </Button>
         </DialogHeader>
 
         <div className="flex flex-col h-full">

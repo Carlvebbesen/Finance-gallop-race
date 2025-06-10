@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Link, redirect } from "react-router";
+import { redirect } from "react-router";
 import { createClient } from "~/lib/supabase/client";
 import { useRealtimeGame } from "~/lib/useRealtimeGame";
 import AssetCards from "~/components/view/asset-cards";
@@ -32,10 +32,8 @@ import {
   type NewMarketDayPayload,
   type BaseEvent,
   type BetPlacedPayload,
-  type SipsTakenPayload,
 } from "~/types";
 import type { Route } from "./+types/game";
-import { Button } from "~/components/ui/button";
 
 export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   const supabase = createClient();
@@ -356,6 +354,7 @@ export default function Game({ loaderData, params }: Route.ComponentProps) {
           {/* Asset grid in the center */}
           <div className="flex-1">
             <AssetGrid
+              gameId={gameId}
               gameState={gameState}
               columns={columns}
               assets={assets}
@@ -373,6 +372,9 @@ export default function Game({ loaderData, params }: Route.ComponentProps) {
       {/* Investor section at the bottom */}
       <div className="mt-2">
         <InvestorSection
+          readyPlayers={events
+            .filter((e) => e.event === sipsTaken)
+            .map((p) => p.payload.playerId)}
           investors={investors}
           bets={investorBets}
           game={game}
@@ -384,11 +386,11 @@ export default function Game({ loaderData, params }: Route.ComponentProps) {
         onClose={handleCloseDialog}
       />
 
-      <GameResultsDialog
+      {/* <GameResultsDialog
         open={gameState === GameStates.FINISHED}
         result={result}
         players={investors}
-      />
+      /> */}
       <CallOptionReminderBanner
         isVisible={isCallOptionBannerVisible && !hasShownCallOptions}
         onClose={handleCloseBanner}

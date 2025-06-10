@@ -18,7 +18,53 @@ export function GameInfoCard() {
           Inspired by the Norwegian game <em>Veddeløpet</em>, this game combines
           investing, gambling, and drinking into a race to the top.
         </p>
-
+        <p>
+          {" "}
+          <strong>Here's how the fun begins:</strong>{" "}
+        </p>{" "}
+        <ol className="list-decimal list-inside space-y-2 mt-2">
+          {" "}
+          <li>
+            {" "}
+            <strong>Set Up the Game:</strong> One player creates a game lobby,
+            and the others join in.{" "}
+          </li>{" "}
+          <li>
+            {" "}
+            <strong>Cast to a Bigger Screen:</strong> Once everyone’s in, set
+            the game to <em>Spectator Mode</em> and cast it to a TV or a large
+            screen. That way, everyone can enjoy the drama unfold!{" "}
+          </li>{" "}
+          <li>
+            {" "}
+            <strong>Place Your Bets:</strong> Each player chooses which asset(s)
+            they believe will hit <strong>100% market gain</strong> first.{" "}
+            <br /> Players bet with sips — more risk, more to drink!{" "}
+          </li>{" "}
+          <li>
+            {" "}
+            <strong>The Race Begins:</strong> The market simulation starts. Each
+            round, assets grow by random percentages, and players watch the
+            market battle unfold in real time.{" "}
+          </li>{" "}
+          <li>
+            {" "}
+            <strong>Game End:</strong> Once an asset reaches 100%, the game
+            declares a winner. <br /> Depending on how your bet went, it’s time
+            to drink — or make others drink!{" "}
+          </li>{" "}
+          <li>
+            {" "}
+            <strong>Play Again?</strong> After the dust settles (and drinks are
+            shared), you can easily restart the game for another round of
+            mayhem.{" "}
+          </li>{" "}
+        </ol>{" "}
+        <p className="italic mt-4">
+          {" "}
+          Set your sights, place your bets, and let the bubbles and markets rise
+          together! 🍾📈{" "}
+        </p>
         <div>
           <h3 className="font-semibold">🎯 Objective</h3>
           <p>
@@ -26,7 +72,6 @@ export function GameInfoCard() {
             <strong>100% market gain</strong>.
           </p>
         </div>
-
         <div>
           <h3 className="font-semibold">💸 Assets to Bet On</h3>
           <div className="flex flex-wrap gap-2 mt-2">
@@ -40,7 +85,6 @@ export function GameInfoCard() {
             is on!
           </p>
         </div>
-
         <div>
           <h3 className="font-semibold">🧠 How to Play</h3>
           <ul className="list-disc list-inside space-y-2 mt-2">
@@ -77,7 +121,6 @@ export function GameInfoCard() {
             </li>
           </ul>
         </div>
-
         <div>
           <h3 className="font-semibold">🔁 Game Flow</h3>
           <p>
@@ -89,7 +132,6 @@ export function GameInfoCard() {
             might quickly come under scrutiny and lose your returns!
           </p>
         </div>
-
         <p className="italic">
           Let the sips and the stocks flow 🍻📊
           <br />

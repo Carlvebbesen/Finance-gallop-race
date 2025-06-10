@@ -10,7 +10,8 @@ import {
 import { useNavigate } from "react-router";
 import { GameInfoCard } from "~/components/game-info";
 import { useRef, useState } from "react";
-import { readNickname, saveNickname } from "~/lib/utils";
+import { saveNickname } from "~/lib/utils";
+import SpectateGameCard from "~/components/view/spectateGameCard";
 
 export default function SignUp() {
   const [error, setError] = useState("");
@@ -75,45 +76,10 @@ export default function SignUp() {
               </CardContent>
             </Card>
           </div>
-          <ViewGameCard />
+          <SpectateGameCard />
         </div>
       </div>
       <GameInfoCard />
     </div>
-  );
-}
-
-function ViewGameCard() {
-  const [gameId, setGameId] = useState("");
-  const navigate = useNavigate();
-  return (
-    <Card className="mt-6">
-      <CardHeader>
-        <CardTitle className="text-xl">View a Game</CardTitle>
-        <CardDescription>
-          Enter a game ID to watch as a spectator
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col gap-4">
-          <input
-            type="text"
-            placeholder="Enter Game ID"
-            className="w-full rounded-md border border-input bg-background px-3 py-2"
-            onChange={(e) => setGameId(e.target.value)}
-          />
-          <Button
-            onClick={() => {
-              if (gameId) {
-                navigate(`/game/${gameId}/spectate`);
-              }
-            }}
-            disabled={gameId.length < 5}
-          >
-            Watch Game
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
   );
 }

@@ -4,6 +4,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Card, CardContent } from "../ui/card";
 import type { Investor, SipCalculationResult } from "~/types";
 import { Button } from "../ui/button";
+import { useNavigate } from "react-router";
+import { AutoScroll } from "../AutoScrollList";
 
 export default function GameResultsDialog({
   open,
@@ -14,9 +16,8 @@ export default function GameResultsDialog({
   players: Investor[];
   result?: SipCalculationResult | null;
 }) {
-  // Calculate dynamic grid columns based on number of investors
-
   if (!result) return <div>{open ? "Loading ...." : ""}</div>;
+  const navigate = useNavigate();
   const getInvestorGridCols = () => {
     const count = result.playerSipSummary.length;
     if (count <= 4) return "grid-cols-4";
@@ -28,14 +29,14 @@ export default function GameResultsDialog({
 
   return (
     <Dialog open={open}>
-      <DialogContent className="min-w-8/12 h-[95vh] flex flex-col p-6 rounded-xl">
+      <DialogContent className="min-w-10/12 h-[95vh] flex flex-col p-6 rounded-xl">
         <DialogHeader className="mb-4">
-          <DialogTitle className="text-center text-5xl font-bold">
-            Market Race Results
+          <DialogTitle className="text-center flex justify-center items-center text-5xl font-bold">
+            Market Race Results{" "}
+            <Button className="ml-10" onClick={() => navigate("/")}>
+              Exit Market
+            </Button>
           </DialogTitle>
-          <Button>
-            <Link to={"/"}>Exit Market</Link>
-          </Button>
         </DialogHeader>
 
         <div className="flex flex-col h-full">
@@ -43,41 +44,38 @@ export default function GameResultsDialog({
           <div className="flex gap-4 h-[60%]">
             {/* Left column - Winner and successful investors */}
             <div className="flex flex-col gap-4 w-1/2">
-              {/* Winner Section */}
               <div className="flex items-center gap-4 bg-yellow-50 p-4 rounded-xl border-2 border-yellow-200">
                 <Trophy className="h-20 w-20 text-yellow-500" />
-                <h2 className="text-3xl font-bold">
-                  Winning Asset:{" "}
+                <div className="flex flex-col items-center">
+                  <h2 className="text-3xl font-bold">
+                    Winning Asset:{" "}
+                    {result.winningAssets.join(" , ").toUpperCase()}
+                  </h2>
                   {result.winningAssets.map((asset) => (
-                    <div className="flex justify-around items-center w-40">
-                      <img
-                        height={40}
-                        alt={asset}
-                        src={`/assets/${asset}.png`}
-                      />
-                      <h3 className="text-xl font-semibold">
-                        {asset.toUpperCase()}
-                      </h3>
-                    </div>
+                    <img
+                      className="w-40 rounded border-4 border-amber-400 mt-5"
+                      alt={asset}
+                      src={`/assets/${asset}.png`}
+                    />
                   ))}
-                </h2>
+                </div>
               </div>
 
               {/* Winning Investors */}
-              <Card className="shadow-lg flex-1 overflow-hidden">
-                <CardContent className="p-4 h-full flex flex-col">
+              <Card className="shadow-lg flex-1 overflow-hidden py-2">
+                <CardContent className="h-full flex flex-col">
                   <div className="flex items-center gap-3 mb-3">
-                    <TrendingUp className="h-8 w-8 text-green-500" />
+                    <TrendingUp className="h-6 w-6 text-green-500" />
                     <h3 className="text-2xl font-bold">Successful Investors</h3>
                   </div>
 
                   <div className="flex-1 overflow-hidden">
                     {result.successfulInvestments.length > 0 ? (
-                      <div className="grid grid-cols-1 gap-2 h-full">
+                      <AutoScroll className="h-full" direction="vertical">
                         {result.successfulInvestments.map((investor) => (
                           <div
                             key={`${investor.asset} ${investor.player}${investor.originalInvestedAmount}`}
-                            className="flex items-center justify-between border-b pb-2"
+                            className="flex items-center justify-between border-b py-2"
                           >
                             <div className="flex items-center gap-3">
                               <div
@@ -85,7 +83,7 @@ export default function GameResultsDialog({
                                   ASSET_COLORS[investor.asset]
                                 }`}
                               ></div>
-                              <span className="font-medium text-xl">
+                              <span className="font-medium text-2xl">
                                 {players.find(
                                   (player) =>
                                     player.player_id === investor.player
@@ -95,12 +93,12 @@ export default function GameResultsDialog({
                             {investor.callOptionUsed && (
                               <h2 className="text-xl">Call Option Used!</h2>
                             )}
-                            <div className="text-green-600 font-bold text-xl">
+                            <div className="text-green-600 font-bold text-2xl">
                               Hand out: + {investor.sipsToDeal}
                             </div>
                           </div>
                         ))}
-                      </div>
+                      </AutoScroll>
                     ) : (
                       <p className="text-gray-500 italic text-lg">
                         No investors bet on the winning asset
@@ -114,7 +112,7 @@ export default function GameResultsDialog({
             {/* Right column - Shorts */}
             <div className="flex flex-col gap-4 w-1/2">
               {/* Successful Shorts */}
-              <Card className="shadow-lg flex-1 overflow-hidden">
+              <Card className="shadow-lg flex-1 overflow-hidden py-2">
                 <CardContent className="p-4 h-full flex flex-col">
                   <div className="flex items-center gap-3 mb-3">
                     <TrendingDown className="h-8 w-8 text-green-500" />
@@ -123,11 +121,11 @@ export default function GameResultsDialog({
 
                   <div className="flex-1 overflow-hidden">
                     {result.successfulShorts.length > 0 ? (
-                      <div className="grid grid-cols-1 gap-2 h-full">
+                      <AutoScroll className="h-full" direction="vertical">
                         {result.successfulShorts.map((investor) => (
                           <div
                             key={`${investor.asset} ${investor.player}${investor.amount}`}
-                            className="flex items-center justify-between border-b pb-2"
+                            className="flex items-center justify-between border-b py-2"
                           >
                             <div className="flex items-center gap-3">
                               <div
@@ -135,7 +133,7 @@ export default function GameResultsDialog({
                                   ASSET_COLORS[investor.asset]
                                 }`}
                               ></div>
-                              <span className="font-medium text-xl">
+                              <span className="font-medium text-2xl">
                                 {players.find(
                                   (player) =>
                                     player.player_id === investor.player
@@ -145,12 +143,12 @@ export default function GameResultsDialog({
                                 (Shorted {investor.asset})
                               </span>
                             </div>
-                            <div className="text-green-600 font-bold text-xl">
+                            <div className="text-green-600 font-bold text-2xl">
                               Hand out: + {investor.sipsToDeal}
                             </div>
                           </div>
                         ))}
-                      </div>
+                      </AutoScroll>
                     ) : (
                       <p className="text-gray-500 italic text-lg">
                         No successful shorts
@@ -161,8 +159,8 @@ export default function GameResultsDialog({
               </Card>
 
               {/* Unsuccessful Shorts */}
-              <Card className="shadow-lg flex-1 overflow-hidden">
-                <CardContent className="p-4 h-full flex flex-col">
+              <Card className="shadow-lg flex-1 overflow-hidden py-3">
+                <CardContent className="h-full flex flex-col">
                   <div className="flex items-center gap-3 mb-3">
                     <TrendingDown className="h-8 w-8 text-red-500" />
                     <h3 className="text-2xl font-bold">Unsuccessful Shorts</h3>
@@ -170,11 +168,11 @@ export default function GameResultsDialog({
 
                   <div className="flex-1 overflow-hidden">
                     {result.unsuccessfulShorts.length > 0 ? (
-                      <div className="grid grid-cols-1 gap-2 h-full">
+                      <AutoScroll direction="vertical" className="h-full">
                         {result.unsuccessfulShorts.map((investor) => (
                           <div
                             key={`${investor.asset} ${investor.player}${investor.amount}`}
-                            className="flex items-center justify-between border-b pb-2"
+                            className="flex items-center justify-between border-b py-2"
                           >
                             <div className="flex items-center gap-3">
                               <div
@@ -182,7 +180,7 @@ export default function GameResultsDialog({
                                   ASSET_COLORS[investor.asset]
                                 }`}
                               ></div>
-                              <span className="font-medium text-xl">
+                              <span className="font-medium text-2xl">
                                 {players.find(
                                   (player) =>
                                     player.player_id === investor.player
@@ -192,12 +190,12 @@ export default function GameResultsDialog({
                                 (Shorted {investor.asset})
                               </span>
                             </div>
-                            <div className="text-red-600 font-bold text-xl">
+                            <div className="text-red-600 font-bold text-2xl">
                               Needs to drink: {investor.sipsToDrink}
                             </div>
                           </div>
                         ))}
-                      </div>
+                      </AutoScroll>
                     ) : (
                       <p className="text-gray-500 italic text-lg">
                         No unsuccessful shorts
@@ -210,61 +208,49 @@ export default function GameResultsDialog({
           </div>
 
           {/* All Investors Section - Bottom */}
-          <Card className="shadow-lg mt-4 flex-1">
-            <CardContent className="p-4 h-full">
+          <Card className="shadow-lg mt-4 flex-1 py-3">
+            <CardContent className="p-2 h-full">
               <div className="flex items-center gap-3 mb-3">
                 <Users className="h-8 w-8" />
                 <h3 className="text-2xl font-bold">Our Investors</h3>
               </div>
-
-              <div
-                className={`grid ${getInvestorGridCols()} gap-3 h-[calc(100%-3rem)]`}
-              >
+              <AutoScroll>
                 {result.playerSipSummary.map((investor, index) => {
-                  // Calculate card size based on investor count
-                  const textSize =
-                    result.playerSipSummary.length <= 6
-                      ? "text-2xl"
-                      : "text-xl";
-                  const numberSize =
-                    result.playerSipSummary.length <= 6
-                      ? "text-2xl"
-                      : "text-xl";
+                  const player = players.find(
+                    (player) => player.player_id === investor.player
+                  );
                   return (
                     <div
-                      key={`${investor.player} ${investor.sipsToDealOut}${investor.sipsToDrink} ${index}`}
-                      className="border rounded-xl p-3 flex flex-col justify-between shadow-md"
+                      className={`min-w-55 border rounded-xl p-4 mx-2 inline-block shadow-lg
+  ${
+    investor.sipsToDealOut > 0
+      ? "bg-gradient-to-br from-green-200 to-green-400"
+      : "bg-gradient-to-br from-red-200 to-red-400"
+  }`}
                     >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={`font-bold ${numberSize}`}>
-                          #{index + 1}
-                        </span>
-                        <span
-                          className={`${
-                            investor.sipsToDealOut === 0
-                              ? "bg-red-100 text-red-700"
-                              : "bg-green-100 text-green-700"
-                          } text-xs px-2 py-0.5 rounded-full font-bold`}
-                        >
-                          {investor.sipsToDealOut === 0 ? "LOOSER" : "WINNER"}
-                        </span>
+                      <span className="font-bold text-2xl">
+                        #{index + 1}:{" "}
+                        {player?.nickname ?? `No Name ${investor.player}`}
+                      </span>
+
+                      <div className="my-2">
+                        <h3 className="text-2xl">
+                          🍻 Drink:{" "}
+                          <span className="font-bold">
+                            {investor.sipsToDrink}
+                          </span>
+                        </h3>
+                        <h3 className="text-2xl">
+                          🤟 Hand Out:{" "}
+                          <span className="font-bold">
+                            {investor.sipsToDealOut}
+                          </span>
+                        </h3>
                       </div>
-                      <div className={`font-medium ${textSize}`}>
-                        {players.find(
-                          (player) => player.player_id === investor.player
-                        )?.nickname ?? `No Name ${investor.player}`}
-                      </div>
-                      <div className="flex items-center gap-1 text-sm">
-                        <h3 className={textSize}>To drink:</h3>
-                        <h3 className={textSize}>{investor.sipsToDrink}</h3>
-                      </div>
-                      <h3 className="text-lg font-bold underline ">
-                        To hand Out: {investor.sipsToDealOut}
-                      </h3>
                     </div>
                   );
                 })}
-              </div>
+              </AutoScroll>
             </CardContent>
           </Card>
         </div>

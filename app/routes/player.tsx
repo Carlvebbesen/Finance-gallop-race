@@ -305,13 +305,30 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="container max-w-md mx-auto p-4 space-y-6">
-      <Button className="mb-10">
-        <Link to={"/"}>GO HOME</Link>
-      </Button>
+      <div className="flex justify-around items-end">
+        <Button className="mb-10">
+          <Link to={"/"}>GO HOME</Link>
+        </Button>
+        <GameIdCard game={game} />
+      </div>
+
       <Card className="p-6">
         <h1 className="text-2xl font-bold mb-4">
-          Game Stats for {investor.nickname}
+          Market Stats for {investor.nickname}
         </h1>
+        <div className="w-full px-4 text-center text-sm text-gray-700">
+          <p className="mb-2">
+            You're now in the final state. The game will continue on the
+            Spectate screen.
+          </p>
+          <p className="mb-2">
+            Keep this screen open on your phone — if you’ve placed any Call or
+            Put options, you’ll respond here when it’s time.
+          </p>
+          <p className="font-semibold text-green-700">
+            Once you’ve taken your sips, press the button below to continue 🍻
+          </p>
+        </div>
 
         {!investor.sips_taken && sipsToTake > 0 && (
           <div className="mb-6">
@@ -360,7 +377,6 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
         {ongoingGame.state === GameStates.FINISHED &&
           playerStatsMarketClose(bets, ongoingGame, investor)}
         {/* Handle case where game is finieshed TODO */}
-        <GameIdCard game={game} />
         <CallOptionConfirmation
           isVisible={isConfirmationVisible}
           assetName={callBet?.asset}

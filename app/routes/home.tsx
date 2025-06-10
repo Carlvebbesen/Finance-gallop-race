@@ -6,6 +6,7 @@ import { BackgroundBeamsWithCollision } from "~/components/backgrounds/backgroun
 import { GameInfoCard } from "~/components/game-info";
 import { Link } from "react-router";
 import { createClient } from "~/lib/supabase/client";
+import SpectateGameCard from "~/components/view/spectateGameCard";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -31,7 +32,10 @@ export default function Home() {
       <div className="flex md:flex-row flex-col justify-around w-full">
         <div className="flex flex-col">
           <Card className="min-w-76 flex justify-center items-center p-12">
-            <CardTitle>Create a new Stock Exchange Market</CardTitle>
+            <CardTitle>
+              Create a new Stock Exchange Market so other players could join,
+              you will then become the game Master
+            </CardTitle>
             <CardContent>
               <Button>
                 <Link to={"create/game"}>Create</Link>
@@ -39,13 +43,16 @@ export default function Home() {
             </CardContent>
           </Card>
           <Card className="min-w-76 flex justify-center items-center p-12">
-            <CardTitle>Join a Stock Exchange Market</CardTitle>
+            <CardTitle>
+              Join a Stock Exchange Market that another player has created
+            </CardTitle>
             <CardContent>
               <Button>
                 <Link to={"join/game"}>Join</Link>
               </Button>
             </CardContent>
           </Card>
+          <SpectateGameCard />
         </div>
         <GameInfoCard />
       </div>

@@ -1,11 +1,14 @@
 import { totalSipsToDrink } from "~/lib/utils";
 import { type Investor, type Bet, type Game, TradeType } from "~/types";
 import { Card, CardContent } from "../ui/card";
+import { AutoScroll } from "../AutoScrollList";
+import type { ReactNode } from "react";
 
 interface InvestorSectionProps {
   investors: Investor[];
   bets: Bet[];
   game: Game;
+  readyPlayers: string[];
 }
 
 // --- Helper Function to process bets ---
@@ -32,6 +35,7 @@ export default function InvestorSection({
   investors,
   bets,
   game,
+  readyPlayers,
 }: InvestorSectionProps) {
   if (!investors || investors.length === 0) {
     return (
@@ -49,7 +53,7 @@ export default function InvestorSection({
       <h2 className="text-2xl font-semibold mb-4 text-gray-800">
         Meet the Investors
       </h2>
-      <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200">
+      <AutoScroll speed={55}>
         {investors.map((investor) => {
           const shortInfo = processBetsForType(
             bets,
@@ -66,85 +70,71 @@ export default function InvestorSection({
             TradeType.INVEST,
             investor.player_id
           );
-
+          const isReady = readyPlayers.includes(investor.player_id);
           return (
             <Card
               key={investor.player_id}
-              className="min-w-[300px] max-w-[400px] flex-shrink-0 bg-slate-50 hover:shadow-lg transition-shadow duration-200"
+              className={`min-w-65 transition-shadow duration-300 mx-4 p-1
+    ${
+      isReady
+        ? "animate-drinkCelebrate bg-green-100"
+        : "bg-slate-50 hover:shadow-lg"
+    }
+  `}
             >
-              <CardContent>
-                <div className="flex items-baseline justify-around">
-                  <h3
-                    className="font-bold text-lg text-indigo-700 truncate"
-                    title={investor.nickname ?? "No Name"}
-                  >
-                    {investor.nickname}
-                  </h3>
-                  <h3 className="underline">Drink PreGame: </h3>
-                  <h2 className="text-3xl font-semibold">
-                    {totalSipsToDrink(
-                      game,
-                      bets.filter((b) => b.player_id === investor.player_id)
-                    )}
-                  </h2>
-                </div>
+              <CardContent className=" flex flex-col items-start justify-center">
+                <h3 className="font-bold text-2xl text-indigo-700 truncate">
+                  {investor.nickname ?? "No Name"}
+                </h3>
+                <h2
+                  className={`text-2xl text-amber-600 font-semibold transition-opacity duration-500 ${
+                    isReady ? "opacity-0" : "opacity-100"
+                  }`}
+                >
+                  Invested Sips:{" "}
+                  {totalSipsToDrink(
+                    game,
+                    bets.filter((b) => b.player_id === investor.player_id)
+                  )}
+                </h2>
                 <div className="mt-3 space-y-3">
-                  {/* Display Short Bets */}
                   {shortInfo.totalAmount > 0 && (
-                    <div>
-                      <p className="text-sm font-semibold text-red-600">
+                    <InvestorInvestments assets={shortInfo.assets}>
+                      <p className="text-lg font-semibold text-red-600">
                         Shorted:{" "}
                         <span className="font-bold">
                           {shortInfo.totalAmount} sips
                         </span>
                       </p>
-                      {shortInfo.assets.length > 0 && (
-                        <p className="text-xs text-gray-600">
-                          Assets: {shortInfo.assets.join(", ")}
-                        </p>
-                      )}
-                    </div>
+                    </InvestorInvestments>
                   )}
 
-                  {/* Display Call Bets (assuming "call" is a type) */}
                   {callInfo.totalAmount > 0 && (
-                    <div>
-                      <p className="text-sm font-semibold text-green-600">
+                    <InvestorInvestments assets={callInfo.assets}>
+                      <p className="text-lg font-semibold text-green-600">
                         Calls:{" "}
                         <span className="font-bold">
                           {callInfo.totalAmount} sips
                         </span>
                       </p>
-                      {callInfo.assets.length > 0 && (
-                        <p className="text-xs text-gray-600">
-                          Assets: {callInfo.assets.join(", ")}
-                        </p>
-                      )}
-                    </div>
+                    </InvestorInvestments>
                   )}
 
-                  {/* Display Normal Investments (assuming type "invest") */}
                   {normalInvestInfo.totalAmount > 0 && (
-                    <div>
-                      <p className="text-sm font-semibold text-blue-600">
+                    <InvestorInvestments assets={normalInvestInfo.assets}>
+                      <p className="text-lg font-semibold text-blue-600">
                         Invested:{" "}
                         <span className="font-bold">
                           {normalInvestInfo.totalAmount} sips
                         </span>
                       </p>
-                      {normalInvestInfo.assets.length > 0 && (
-                        <p className="text-xs text-gray-600">
-                          Assets: {normalInvestInfo.assets.join(", ")}
-                        </p>
-                      )}
-                    </div>
+                    </InvestorInvestments>
                   )}
 
-                  {/* Fallback if no relevant bets are displayed */}
                   {shortInfo.totalAmount === 0 &&
                     callInfo.totalAmount === 0 &&
                     normalInvestInfo.totalAmount === 0 && (
-                      <p className="text-sm text-gray-500">
+                      <p className="text-lg text-gray-500">
                         No active short, call, or standard investments.
                       </p>
                     )}
@@ -153,7 +143,31 @@ export default function InvestorSection({
             </Card>
           );
         })}
-      </div>
+      </AutoScroll>
     </div>
   );
 }
+const InvestorInvestments = ({
+  assets,
+  children,
+}: {
+  assets: string[];
+  children: ReactNode;
+}) => {
+  return (
+    <div className="flex space-x-2 items-center">
+      <img
+        key={`asset-${assets[0]} ${children?.toString()}`}
+        alt={assets[0]}
+        src={`/assets/${assets[0]}.png`}
+        className="rounded-full h-8"
+      />
+      <div>
+        {children}
+        {assets.length > 0 && (
+          <p className="text-sm text-gray-600">On: {assets.join(", ")}</p>
+        )}
+      </div>
+    </div>
+  );
+};

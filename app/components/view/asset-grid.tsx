@@ -1,12 +1,14 @@
 import { ASSET_COLORS, GameStates } from "~/lib/event";
 import { Overlay } from "../backgrounds/overlay";
 import type { AssetStateValue, AssetType, MarketEventCard } from "~/types";
+import { SpectatorInstructions } from "./spectator-instructions";
 
 interface AssetGridProps {
   columns: number;
   assets: Record<AssetType, AssetStateValue>;
   marketEventCards: MarketEventCard[];
   gameState: GameStates;
+  gameId: string;
 }
 
 function generateTrailForAsset(state: AssetStateValue, maxHeight: number) {
@@ -34,6 +36,7 @@ export default function AssetGrid({
   assets,
   marketEventCards,
   gameState,
+  gameId,
 }: AssetGridProps) {
   // Create a 4x100 grid (or 4 x columns)
 
@@ -48,11 +51,11 @@ export default function AssetGrid({
     },
     {} as Record<AssetType, { x: number; y: number }[]>
   );
+  if (gameState === GameStates.NOT_STARTED) {
+    return <SpectatorInstructions gameId={gameId} />;
+  }
   return (
     <div className="relative w-full h-full border border-gray-300">
-      {gameState === GameStates.NOT_STARTED && (
-        <Overlay message="Game Not Started " />
-      )}
       {/* Grid bzckground */}
       <div className="absolute inset-0 grid grid-rows-4 w-full h-full">
         {Array.from({ length: rows }).map((_, rowIndex) => (

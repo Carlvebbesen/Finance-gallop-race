@@ -1,5 +1,4 @@
 import { Link, redirect } from "react-router";
-import { Button } from "~/components/ui/button";
 import { createClient } from "~/lib/supabase/client";
 import type { Database } from "database.types";
 import CallOptionsCard from "~/components/bets/call-options-card";
@@ -15,6 +14,7 @@ import { useState } from "react";
 import { TradeType, type BetPlacedPayload, type InsertBet } from "~/types";
 import { toast } from "sonner";
 import BetCard from "~/components/bets/betCard";
+import { ArrowBigRight } from "lucide-react";
 
 export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   const supabase = createClient();
@@ -150,7 +150,7 @@ export default function BettingPage({
   };
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container mx-auto pb-16 px-4 pt-8">
       <h1 className="text-3xl font-bold mb-8">Investment Platform</h1>
       <p className="text-gray-600 mb-6">
         You must either invest or Short an asset to proceed. (or both) Call and
@@ -159,29 +159,38 @@ export default function BettingPage({
         {game.short_multiplier}X, but if the asset wins, you have to drink as
         well!
       </p>
-
+      <GameIdCard game={game} />
+      <button
+        type="button"
+        disabled={
+          bets.filter((bet) => bet.type === "short").length === 0 &&
+          bets.filter((bet) => bet.type === "invest").length === 0
+        }
+        className={`
+    fixed bottom-0 left-0 w-full p-4 text-white font-bold text-center shadow-md z-50 transition flex justify-around
+    ${
+      bets.filter((bet) => bet.type === "short").length === 0 &&
+      bets.filter((bet) => bet.type === "invest").length === 0
+        ? "bg-gray-400 cursor-not-allowed"
+        : "bg-green-600/90 hover:bg-green-600"
+    }
+  `}
+      >
+        <Link to={`/game/${game.game_id}/player`}>
+          I'm finished betting on the market
+        </Link>
+        <ArrowBigRight />
+      </button>
       <div className="flex justify-between items-center mb-6 md:flex-row flex-col gap-4">
-        <Button
-          type="button"
-          disabled={
-            bets.filter((bet) => bet.type === "short").length === 0 &&
-            bets.filter((bet) => bet.type === "invest").length === 0
-          }
-        >
-          <Link to={`/game/${game.game_id}/player`}>
-            {"I'm finished betting on the market"}
-          </Link>
-        </Button>
-        <div className="text-lg">
+        <div className="text-lg text-red-400">
           Total Sips to drink:{" "}
           <span className="font-bold">{totalSipsToDrink(game, bets)}</span>
         </div>
-        <div className="text-lg">
-          Total sips to hand out:{" "}
+        <div className="text-lg text-green-400">
+          Potential sips to hand out:{" "}
           <span className="font-bold">{totalSipsToHandOut(game, bets)}</span>
         </div>
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <BetCard
           game={game}
@@ -207,8 +216,7 @@ export default function BettingPage({
         {/* <PutOptionsCard game={game}
           bets={bets.find((ib) => ib.type === TradeType.PUT)}
           placeBet={placeBet} /> */}
-      </div>
-      <GameIdCard game={game} />
+      </div>{" "}
     </div>
   );
 }

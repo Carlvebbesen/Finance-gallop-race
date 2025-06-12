@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { player_joined } from "~/lib/event";
 import { readNickname } from "~/lib/utils";
 import { useRef, useState } from "react";
@@ -73,6 +73,7 @@ export default function JoinGame() {
   };
 
   const [loading, setLoading] = useState(false);
+  const [searchParams, _] = useSearchParams();
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10 gap-8">
       <Button>
@@ -89,6 +90,7 @@ export default function JoinGame() {
               <input
                 onChange={(e) => (gameId.current = e.target.value)}
                 name="gameId"
+                defaultValue={searchParams.get("newGameId") ?? undefined}
                 placeholder="Game ID"
                 className="w-full rounded-md border border-input bg-background px-3 py-2"
               />

@@ -121,7 +121,9 @@ export default function Game({ loaderData, params }: Route.ComponentProps) {
 
   const [marketEventCards, setMarketEventCards] = useState<MarketEventCard[]>(
     // TODO: fix hacky solution
-    game.market_events.map((item) => JSON.parse(item as unknown as string))
+    game.market_events.map((item: unknown) =>
+      JSON.parse(item as unknown as string)
+    )
   );
 
   const [isCallOptionBannerVisible, setCallOptionBannerVisible] =
@@ -386,11 +388,11 @@ export default function Game({ loaderData, params }: Route.ComponentProps) {
         onClose={handleCloseDialog}
       />
 
-      {/* <GameResultsDialog
+      <GameResultsDialog
         open={gameState === GameStates.FINISHED}
         result={result}
         players={investors}
-      /> */}
+      />
       <CallOptionReminderBanner
         isVisible={isCallOptionBannerVisible && !hasShownCallOptions}
         onClose={handleCloseBanner}

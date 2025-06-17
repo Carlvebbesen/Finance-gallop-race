@@ -88,7 +88,9 @@ export default function JoinGame() {
           <CardContent>
             <div className="flex flex-col gap-6">
               <input
-                onChange={(e) => (gameId.current = e.target.value)}
+                onChange={(e) =>
+                  (gameId.current = e.target.value.toUpperCase())
+                }
                 name="gameId"
                 defaultValue={searchParams.get("newGameId") ?? undefined}
                 placeholder="Game ID"

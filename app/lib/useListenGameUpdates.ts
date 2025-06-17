@@ -61,6 +61,11 @@ export function useListenGameUpdates({
               callOptionUsed === null &&
               callBet?.asset != null
             ) {
+              console.log("updatedGame", updatedGame.call_percent);
+              console.log("leading", leading);
+              console.log("callOptionUsed", callOptionUsed === null);
+              console.log("callOption", callOptionUsed);
+              console.log("callBet", callBet?.asset != null);
               callback();
             }
             if (updatedGame.state === GameStates.FINISHED) {

@@ -1,4 +1,4 @@
-import { Link, redirect } from "react-router";
+import { Link, redirect, useNavigate } from "react-router";
 import { createClient } from "~/lib/supabase/client";
 import type { Database } from "database.types";
 import CallOptionsCard from "~/components/bets/call-options-card";
@@ -90,6 +90,7 @@ export default function BettingPage({
   const { game, placedBets, playerId } = loaderData;
   const [bets, setBets] = useState<InsertBet[]>(placedBets);
 
+  const navigate = useNavigate();
   const placeBet = async (bet: InsertBet) => {
     const supabase = createClient();
     const {
@@ -161,6 +162,7 @@ export default function BettingPage({
       </p>
       <GameIdCard game={game} />
       <button
+        onClick={() => navigate(`/game/${game.game_id}/player`)}
         type="button"
         disabled={
           bets.filter((bet) => bet.type === "short").length === 0 &&
@@ -176,9 +178,7 @@ export default function BettingPage({
     }
   `}
       >
-        <Link to={`/game/${game.game_id}/player`}>
-          I'm finished betting on the market
-        </Link>
+        I'm finished betting on the market
         <ArrowBigRight />
       </button>
       <div className="flex justify-between items-center mb-6 md:flex-row flex-col gap-4">

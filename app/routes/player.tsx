@@ -97,12 +97,12 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
     gameId: game.game_id,
     callback: () => setIsConfirmationVisible(true),
     gameFinished: setOngoingGame,
-    callOptionUsed: player.call_option_used,
+    callOptionUsed: investor.call_option_used,
     callBet: callBet,
   });
 
   const handleConfirmCallOption = async () => {
-    setIsConfirmationVisible(false);
+    setIsConfirmationVisible(() => false);
     const diff =
       Math.max(
         ...[

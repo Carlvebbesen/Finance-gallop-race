@@ -209,7 +209,7 @@ export function generateMarketEvents(
 
   let lastPosition = 0; // Stores the position of the previously placed event
   let trumpEventAdded = false;
-  const trumpEventChance = 0.08; //8%
+  const trumpEventChance = 0.1; //10%
 
   for (let i = 0; i < n; i++) {
     localEventIdCounter++;
@@ -256,10 +256,10 @@ export function generateMarketEvents(
       // Regular event generation
       const eventTypeRoll = Math.random();
       if (eventTypeRoll < 0.35) type = MarketEventType.BULL; // 35%
-      else if (eventTypeRoll < 0.8) type = MarketEventType.BEAR; // 40%
+      else if (eventTypeRoll < 0.8) type = MarketEventType.BEAR; // 45%
       else type = MarketEventType.BOOM; // 20%
 
-      const useValueAll = Math.random() < 0.4; // 40% chance to use valueAll for broad effect
+      const useValueAll = Math.random() < 0.30; // 40% chance to use valueAll for broad effect
 
       if (useValueAll) {
         changes = []; // Ensure changes is empty if valueAll is used

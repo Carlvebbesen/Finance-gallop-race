@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createClient } from "./supabase/client";
-import type { Game, GameEvent, newGamePayload } from "~/types";
+import type { Bet, Game, GameEvent, newGamePayload } from "~/types";
 import { GameStates, new_game } from "./event";
 import { useNavigate } from "react-router";
 
@@ -8,13 +8,16 @@ export function useListenGameUpdates({
   gameId,
   callback,
   gameFinished,
+  callOptionUsed,
+  callBet,
 }: {
   gameId: string;
+  callOptionUsed: boolean | null;
+  callBet?: Bet;
   callback: () => void;
   gameFinished: React.Dispatch<React.SetStateAction<Game>>;
 }) {
   const supabase = createClient();
-  const navigate = useNavigate();
   const [channel, setChannel] = useState<ReturnType<
     typeof supabase.channel
   > | null>(null);
@@ -27,7 +30,7 @@ export function useListenGameUpdates({
       if (newEvent.event === new_game) {
         const newId = newEvent.payload.newGameId;
         if (newId) {
-          return navigate(`/join/game?newGameId=${newId}`);
+          window.location.href = `/join/game?newGameId=${newId}`;
         }
       }
     });
@@ -54,7 +57,9 @@ export function useListenGameUpdates({
             );
             if (
               updatedGame.call_percent &&
-              leading > updatedGame.call_percent
+              leading > updatedGame.call_percent &&
+              callOptionUsed === null &&
+              callBet?.asset != null
             ) {
               callback();
             }

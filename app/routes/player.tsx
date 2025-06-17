@@ -87,33 +87,22 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
   const { player, game, sipsToTake, isAdmin, bets, callBet } = loaderData;
   const [investor, setInvestor] = useState<Investor>(player);
   const [ongoingGame, setOngoingGame] = useState(game);
-  const [shouldShow, setShouldShow] = useState(
-    player.call_option_used === null
-  );
   const supabase = createClient();
   const channel = supabase.channel(`game-${game.game_id}`);
   const navigate = useNavigate();
   const [isConfirmationVisible, setIsConfirmationVisible] =
     useState<boolean>(false);
-  const handleShowConfirmation = useCallback(() => {
-    if (
-      investor.call_option_used === null &&
-      callBet?.asset != null &&
-      shouldShow
-    ) {
-      setIsConfirmationVisible(true);
-    }
-  }, [setIsConfirmationVisible, callBet, investor, shouldShow]);
 
   const { isConnected } = useListenGameUpdates({
     gameId: game.game_id,
-    callback: handleShowConfirmation,
+    callback: () => setIsConfirmationVisible(true),
     gameFinished: setOngoingGame,
+    callOptionUsed: player.call_option_used,
+    callBet: callBet,
   });
 
   const handleConfirmCallOption = async () => {
     setIsConfirmationVisible(false);
-    setShouldShow(false);
     const diff =
       Math.max(
         ...[
@@ -161,7 +150,6 @@ export default function PlayerPage({ loaderData }: Route.ComponentProps) {
 
   const handleDeclineCallOption = async () => {
     setIsConfirmationVisible(false);
-    setShouldShow(false);
     const { error } = await supabase
       .from("player_in_game")
       .update({

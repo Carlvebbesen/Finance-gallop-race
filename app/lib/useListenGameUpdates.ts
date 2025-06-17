@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "./supabase/client";
 import type { Bet, Game, GameEvent, newGamePayload } from "~/types";
 import { GameStates, new_game } from "./event";
@@ -22,6 +22,16 @@ export function useListenGameUpdates({
     typeof supabase.channel
   > | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const callbackRef = useRef(callback);
+  const callOptionUsedRef = useRef(callOptionUsed);
+  const callBetRef = useRef(callBet);
+
+  useEffect(() => {
+    callbackRef.current = callback;
+    callOptionUsedRef.current = callOptionUsed;
+    callBetRef.current = callBet;
+  }, [callback, callOptionUsed, callBet]);
+
   useEffect(() => {
     const newChannel = supabase.channel(`changes`);
     const gameChannel = supabase.channel(`game-${gameId}`);
@@ -58,15 +68,10 @@ export function useListenGameUpdates({
             if (
               updatedGame.call_percent &&
               leading > updatedGame.call_percent &&
-              callOptionUsed === null &&
-              callBet?.asset != null
+              callOptionUsedRef.current === null &&
+              callBetRef.current?.asset != null
             ) {
-              console.log("updatedGame", updatedGame.call_percent);
-              console.log("leading", leading);
-              console.log("callOptionUsed", callOptionUsed === null);
-              console.log("callOption", callOptionUsed);
-              console.log("callBet", callBet?.asset != null);
-              callback();
+              callbackRef.current();
             }
             if (updatedGame.state === GameStates.FINISHED) {
               gameFinished(updatedGame);

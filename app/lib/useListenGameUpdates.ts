@@ -18,7 +18,6 @@ export function useListenGameUpdates({
     typeof supabase.channel
   > | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const navigate = useNavigate();
   useEffect(() => {
     const newChannel = supabase.channel(`changes`);
     const gameChannel = supabase.channel(`game-${gameId}`);
@@ -27,7 +26,7 @@ export function useListenGameUpdates({
       if (newEvent.event === new_game) {
         const newId = newEvent.payload.newGameId;
         if (newId) {
-          navigate(`/join/game?newGameId=${newId}`);
+          window.location.href = `/join/game?newGameId=${newId}`;
         }
       }
     });

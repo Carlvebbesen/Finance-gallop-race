@@ -18,7 +18,6 @@ export function useRealtimeGame({
   const [events, setEvents] = useState<GameEvent[]>([]);
   const [isConnected, setIsConnected] = useState(false);
 
-  const navigate = useNavigate();
   useEffect(() => {
     if (!gameId) {
       // Or handle this scenario appropriately, e.g., by not attempting to subscribe
@@ -36,8 +35,8 @@ export function useRealtimeGame({
         }
         if (newEvent.event == new_game) {
           const newId = newEvent.payload.newGameId;
-          navigate(`/game/${newId}/spectate`);
-          window.location.reload();
+          console.log(`Received new game Event ${newId}`);
+          window.location.href = `/game/${newId}/spectate`;
         }
 
         if (onNewEvent) {

@@ -14,6 +14,7 @@ export function useListenGameUpdates({
   gameFinished: React.Dispatch<React.SetStateAction<Game>>;
 }) {
   const supabase = createClient();
+  const navigate = useNavigate();
   const [channel, setChannel] = useState<ReturnType<
     typeof supabase.channel
   > | null>(null);
@@ -26,7 +27,7 @@ export function useListenGameUpdates({
       if (newEvent.event === new_game) {
         const newId = newEvent.payload.newGameId;
         if (newId) {
-          window.location.href = `/join/game?newGameId=${newId}`;
+          return navigate(`/join/game?newGameId=${newId}`);
         }
       }
     });
